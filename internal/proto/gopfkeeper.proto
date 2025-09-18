@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+option go_package = "github.com/dmitrijs2005/gophkeeper/internal/grpc/proto";
+
+package gophkeeper.service;
+
+message RegisterUserRequest {
+  string username = 1;
+  bytes salt = 2;
+  bytes verifier = 3;
+}
+
+message RegisterUserResponse {
+  string username = 1;
+}
+
+message GetSaltRequest {
+  string username = 1;
+}
+
+message GetSaltResponse {
+  bytes salt = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  bytes verifier_candidate = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message AddEntryRequest {
+  string type = 1;
+  string title = 2;
+  bytes cyphertext = 3;
+  bytes nonce = 4;
+}
+
+message AddEntryResponse {
+  string result = 1;
+}
+
+
+service GophKeeperService {
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
+}
