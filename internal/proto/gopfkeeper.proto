@@ -43,10 +43,27 @@ message AddEntryResponse {
   string result = 1;
 }
 
+message GetPresignedPutUrlRequest {
+}
+
+message GetPresignedPutUrlResponse {
+  string key = 1;
+  string url = 2;
+}
+
+message GetPresignedGetUrlRequest {
+  string key = 1;
+}
+
+message GetPresignedGetUrlResponse {
+  string url = 1;
+}
 
 service GophKeeperService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
+  rpc GetPresignedPutUrl(GetPresignedPutUrlRequest) returns (GetPresignedPutUrlResponse);
+  rpc GetPresignedGetUrl(GetPresignedGetUrlRequest) returns (GetPresignedGetUrlResponse);
 }

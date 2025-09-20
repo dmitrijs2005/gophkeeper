@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dmitrijs2005/gophkeeper/internal/client/crypto"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 )
 
 func (a *App) AddNote() {
@@ -32,7 +32,7 @@ func (a *App) AddNote() {
 		line, _ := reader.ReadString('\n')
 		line = strings.TrimRight(line, "\r\n")
 
-		if line == "" { // пустая строка = конец ввода
+		if line == "" {
 			break
 		}
 
@@ -42,7 +42,7 @@ func (a *App) AddNote() {
 	note := strings.Join(lines, "\n")
 	note = strings.TrimSpace(note)
 
-	cypherText, nonce, err := crypto.EncryptEntry(models.Note{Text: note}, a.masterKey)
+	cypherText, nonce, err := utils.EncryptEntry(models.Note{Text: note}, a.masterKey)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

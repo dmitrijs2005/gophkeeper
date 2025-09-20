@@ -1,4 +1,4 @@
-package crypto
+package utils
 
 import (
 	"crypto/aes"
@@ -6,18 +6,20 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"golang.org/x/crypto/argon2"
 )
 
-func GenerateSalt(size int) []byte {
+func GenerateRandByteArray(size int) []byte {
 	buff := make([]byte, size)
 	rand.Read(buff)
 	return buff
 }
 
 func DeriveMasterKey(password []byte, salt []byte) []byte {
-	return argon2.IDKey(password, salt, 1, 64*1024, 4, 32)
+	x := argon2.IDKey(password, salt, 1, 64*1024, 4, 32)
+	return x
 }
 
 // EncryptEntry serializes the given entry to JSON and encrypts it using AES-GCM.
@@ -58,15 +60,11 @@ func DeriveMasterKey(password []byte, salt []byte) []byte {
 //	fmt.Printf("Nonce: %x\n", nonce)
 func EncryptEntry(entry any, key []byte) (ciphertext, nonce []byte, err error) {
 
-	fmt.Println("aaa")
-
 	// serializing JSON
 	plaintext, err := json.Marshal(entry)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	fmt.Println("bbb")
 
 	// nonce
 	nonce = make([]byte, 12)
@@ -84,8 +82,6 @@ func EncryptEntry(entry any, key []byte) (ciphertext, nonce []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
-	fmt.Println(444)
 
 	// encrypting
 	ciphertext = aesgcm.Seal(nil, nonce, plaintext, nil)
@@ -141,4 +137,39 @@ func DecryptEntry(ciphertext, nonce, key []byte, v any) error {
 	}
 
 	return json.Unmarshal(plaintext, v)
+}
+
+type EncryptedFile struct {
+	Cyphertext []byte
+	Key        []byte
+	Nonce      []byte
+}
+
+func EncryptFile(path string) (*EncryptedFile, error) {
+	// reading the file
+	plaintext, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// random file_key (32 байта)
+	key := GenerateRandByteArray(32)
+
+	// creating AES-GCM
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// nonce
+	nonce := GenerateRandByteArray(aesgcm.NonceSize())
+
+	// шифруем
+	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
+
+	return &EncryptedFile{Cyphertext: ciphertext, Key: key, Nonce: nonce}, nil
 }

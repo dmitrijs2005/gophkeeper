@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/dmitrijs2005/gophkeeper/internal/client/crypto"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	pb "github.com/dmitrijs2005/gophkeeper/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -29,7 +29,7 @@ func (s *GophKeeperClientService) accessTokenInterceptor(
 ) error {
 
 	md := metadata.New(map[string]string{"access_token": s.accessToken})
-	ctx = metadata.NewOutgoingContext(context.Background(), md)
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	err := invoker(ctx, method, req, reply, cc, opts...)
 
@@ -52,8 +52,8 @@ func (s *GophKeeperClientService) InitGRPCClient() error {
 
 func (s *GophKeeperClientService) Register(ctx context.Context, userName string, password []byte) error {
 
-	salt := crypto.GenerateSalt(32)
-	key := crypto.DeriveMasterKey(password, salt)
+	salt := utils.GenerateRandByteArray(32)
+	key := utils.DeriveMasterKey(password, salt)
 
 	req := &pb.RegisterUserRequest{Username: userName, Salt: salt, Verifier: key}
 
@@ -108,5 +108,29 @@ func (s *GophKeeperClientService) AddEntry(ctx context.Context, entryType models
 	}
 
 	return nil
+
+}
+
+func (s *GophKeeperClientService) GetPresignedPutURL(ctx context.Context) (string, string, error) {
+	req := &pb.GetPresignedPutUrlRequest{}
+
+	resp, err := s.client.GetPresignedPutUrl(ctx, req)
+	if err != nil {
+		return "", "", err
+	}
+
+	return resp.Key, resp.Url, nil
+
+}
+
+func (s *GophKeeperClientService) GetPresignedGetURL(ctx context.Context, key string) (string, error) {
+	req := &pb.GetPresignedPutUrlRequest{}
+
+	resp, err := s.client.GetPresignedPutUrl(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Url, nil
 
 }

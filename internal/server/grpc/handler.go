@@ -74,3 +74,21 @@ func (s *GRPCServer) AddEntry(ctx context.Context, req *pb.AddEntryRequest) (*pb
 	return &pb.AddEntryResponse{Result: "ok"}, nil
 
 }
+
+func (s *GRPCServer) GetPresignedPutUrl(ctx context.Context, req *pb.GetPresignedPutUrlRequest) (*pb.GetPresignedPutUrlResponse, error) {
+	key, url, err := s.entries.GetPresignedPutUrl(ctx)
+	if err != nil {
+		s.logger.Error(ctx, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &pb.GetPresignedPutUrlResponse{Key: key, Url: url}, nil
+}
+
+func (s *GRPCServer) GetPresignedGetUrl(ctx context.Context, req *pb.GetPresignedGetUrlRequest) (*pb.GetPresignedGetUrlResponse, error) {
+	result, err := s.entries.GetPresignedGetUrl(ctx, req.Key)
+	if err != nil {
+		s.logger.Error(ctx, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &pb.GetPresignedGetUrlResponse{Url: result}, nil
+}

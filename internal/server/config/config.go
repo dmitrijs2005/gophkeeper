@@ -10,6 +10,11 @@ func (c *Config) LoadDefaults() {
 	c.SecretKey = "secretKey"
 	c.AccessTokenValidityDuration = 1 * time.Minute
 	c.RefreshTokenValidityDuration = 3 * time.Minute
+	c.S3RootUser = "admin"
+	c.S3RootPassword = "secretpassword"
+	c.S3Bucket = "vault"
+	c.S3Region = "us-east-1"
+	c.S3BaseEndpoint = "http://127.0.0.1:9000/"
 }
 
 type Config struct {
@@ -18,15 +23,15 @@ type Config struct {
 	SecretKey                    string
 	AccessTokenValidityDuration  time.Duration
 	RefreshTokenValidityDuration time.Duration
+	S3RootUser                   string
+	S3RootPassword               string
+	S3Bucket                     string
+	S3Region                     string
+	S3BaseEndpoint               string
 }
 
 func LoadConfig() *Config {
 	config := &Config{}
 	config.LoadDefaults()
-
-	// parseJson(config)
-	// parseFlags(config)
-	// parseEnv(config)
-
 	return config
 }

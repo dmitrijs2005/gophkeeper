@@ -29,25 +29,23 @@ func (a *App) Main() {
 		switch cmd {
 		case "help":
 			if a.isLoggedIn() {
-				fmt.Println("Available commands: list, addnote, logout, exit")
+				fmt.Println("Available commands: list, addnote, addfile, logout, exit")
 			} else {
 				fmt.Println("Available commands: register, login")
 			}
 
 		case "register":
-			// вызвать API login, сохранить session_id
 			a.Register()
 		case "login":
-			// вызвать API login, сохранить session_id
 			a.Login()
 		case "addnote":
-			// вызвать API login, сохранить session_id
 			a.AddNote()
+		case "addfile":
+			a.AddFile()
 		case "exit", "quit":
 			fmt.Println("Bye!")
 			return
 		case "list":
-			// запросить список записей с сервера
 			fmt.Println("Entries: (stub)")
 		case "get":
 			if len(args) == 0 {

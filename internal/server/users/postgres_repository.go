@@ -17,29 +17,6 @@ func NewPostgresRepository(db *sql.DB) (*PostgresRepository, error) {
 	return &PostgresRepository{db: db}, nil
 }
 
-// func (r *PostgresRepository) FindUserByLogin(ctx context.Context, login string) (models.User, error) {
-
-// 	s := "select id, login, password, salt from users where login=$1"
-
-// 	var user models.User
-
-// 	_, err := common.RetryWithResult(ctx, func() (*sql.Row, error) {
-// 		r := r.db.QueryRowContext(ctx, s, login)
-// 		err := r.Scan(&user.ID, &user.Login, &user.Password, &user.Salt)
-
-// 		if err != nil {
-// 			if errors.Is(err, sql.ErrNoRows) {
-// 				return nil, common.ErrorNotFound
-// 			}
-// 			return nil, err
-// 		}
-
-// 		return r, nil
-// 	})
-
-// 	return user, err
-// }
-
 func (r *PostgresRepository) Create(ctx context.Context, user *User) (*User, error) {
 
 	query :=

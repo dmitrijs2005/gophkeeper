@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dmitrijs2005/gophkeeper/internal/client/crypto"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	"github.com/dmitrijs2005/gophkeeper/internal/shared"
 	"golang.org/x/term"
 )
@@ -39,7 +39,7 @@ func (a *App) Login() {
 		return
 	}
 
-	key := crypto.DeriveMasterKey(password, salt)
+	key := utils.DeriveMasterKey(password, salt)
 
 	err = a.clientService.Login(context.Background(), userName, key)
 

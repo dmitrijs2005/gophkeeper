@@ -3,7 +3,10 @@ package models
 type EntryType string
 
 var (
-	EntryTypeNote EntryType = "note"
+	EntryTypeNote       EntryType = "note"
+	EntryTypeFile       EntryType = "file"
+	EntryTypeLogin      EntryType = "login"
+	EntryTypeCreditCard EntryType = "credit_card"
 )
 
 type Login struct {
@@ -21,4 +24,10 @@ type CreditCard struct {
 	Expiration string `json:"expiration"`
 	CVV        string `json:"cvv"`
 	Holder     string `json:"holder"`
+}
+
+type File struct {
+	StorageKey string `json:"storage_key"`
+	FileKey    []byte `json:"file_key"`
+	Nonce      []byte `json:"nonce"`
 }

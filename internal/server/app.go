@@ -40,7 +40,7 @@ func NewApp(c *config.Config) (*App, error) {
 	}
 
 	us := users.NewService(um.Users(), um.RefreshTokens(), c)
-	es := entries.NewService(um.Entries())
+	es := entries.NewService(um.Entries(), c)
 
 	return &App{config: config, logger: logger, userService: us, entryService: es}, nil
 }
@@ -79,24 +79,6 @@ func (app *App) Run() {
 	app.logger.Info(ctx, "Starting app...")
 
 	app.initSignalHandler(cancelFunc)
-
-	// s, err := app.initStorage(ctx)
-	// if err != nil {
-	// 	app.logger.Errorw("Storage initialization error", "err", err)
-	// 	cancelFunc()
-	// 	return
-	// }
-
-	// defer func() {
-	// 	closed, err := app.closeDBIfNeeded(s)
-	// 	if err != nil {
-	// 		app.logger.Errorw("Error closing database connection:", "err", err)
-	// 	} else {
-	// 		if closed {
-	// 			app.logger.Infow("Database closed")
-	// 		}
-	// 	}
-	// }()
 
 	var wg sync.WaitGroup
 
