@@ -1,49 +1,76 @@
 package cli
 
 import (
-	"fmt"
-	"time"
+	"bufio"
+	"context"
+	"log"
+	"os"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/config"
-	"github.com/dmitrijs2005/gophkeeper/internal/client/service"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/services"
+
+	_ "modernc.org/sqlite"
+)
+
+type Mode string
+
+const (
+	ModeOffline  Mode = "offline"
+	ModeOnline   Mode = "online"
+	ModeDisabled Mode = "disabled"
 )
 
 type App struct {
-	config        *config.Config
-	clientService service.Service
-	masterKey     []byte
-	userName      string
-	lastActivity  time.Time
+	config       *config.Config
+	authService  services.AuthService
+	entryService services.EntryService
+	masterKey    []byte
+	userName     string
+	Mode         Mode
+	reader       *bufio.Reader
 }
 
 func NewApp(c *config.Config) (*App, error) {
 
-	s, err := service.NewGophKeeperClientService(c.ServerEndpointAddr)
+	ctx := context.Background()
+
+	repositories, err := client.InitDatabase(ctx, "vault.db")
+	if err != nil {
+		log.Printf("error initializing database: %s", err.Error())
+		return nil, err
+	}
+
+	apiClient, err := client.NewGophKeeperClientService(c.ServerEndpointAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.InitGRPCClient()
+	as := services.NewAuthService(apiClient, repositories.Metadata)
 	if err != nil {
 		return nil, err
 	}
 
-	return &App{config: c, clientService: s}, nil
+	es := services.NewEntryService(apiClient, repositories.Entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return &App{config: c, authService: as, entryService: es, reader: bufio.NewReader(os.Stdin)}, nil
 }
 
-func (a *App) Run() {
+func (app *App) setMode(mode Mode) {
+	if app.Mode != mode {
+		app.Mode = mode
+		log.Printf("Switched to %s mode\n", mode)
+	}
+}
 
-	defer a.clientService.Close()
-	a.Main()
+func (a *App) Run(ctx context.Context) {
+	defer a.authService.Close(ctx)
+	a.Root(ctx)
 }
 
 func (a *App) isLoggedIn() bool {
 	return a.userName != ""
-}
-
-func (a *App) showLogin() string {
-	if !a.isLoggedIn() {
-		return ""
-	}
-	return fmt.Sprintf("(%s)", a.userName)
 }

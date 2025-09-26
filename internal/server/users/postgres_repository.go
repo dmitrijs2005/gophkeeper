@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dmitrijs2005/gophkeeper/internal/shared"
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 )
 
 type PostgresRepository struct {
@@ -29,7 +29,7 @@ func (r *PostgresRepository) Create(ctx context.Context, user *User) (*User, err
 		user.UserName, user.Salt, user.Verifier).Scan(&user.ID)
 
 	if err != nil {
-		return nil, fmt.Errorf("error performing sql request: %v", err)
+		return nil, fmt.Errorf("db error: %w", err)
 	}
 
 	return user, nil
@@ -46,9 +46,9 @@ func (r *PostgresRepository) GetUserByLogin(ctx context.Context, userName string
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, shared.ErrorNotFound
+			return nil, common.ErrorNotFound
 		}
-		return nil, fmt.Errorf("error performing sql request: %v", err)
+		return nil, fmt.Errorf("db error: %w", err)
 	}
 
 	return user, nil

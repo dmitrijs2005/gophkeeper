@@ -2,8 +2,10 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	pb "github.com/dmitrijs2005/gophkeeper/internal/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,12 +29,9 @@ func (s *GRPCServer) RegisterUser(ctx context.Context, req *pb.RegisterUserReque
 
 func (s *GRPCServer) GetSalt(ctx context.Context, req *pb.GetSaltRequest) (*pb.GetSaltResponse, error) {
 
-	s.logger.Info(ctx, "Get salt request")
-
 	result, err := s.users.GetSalt(ctx, req.Username)
 
 	if err != nil {
-		s.logger.Error(ctx, err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -42,16 +41,16 @@ func (s *GRPCServer) GetSalt(ctx context.Context, req *pb.GetSaltRequest) (*pb.G
 
 func (s *GRPCServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
 
-	s.logger.Info(ctx, "Login request")
-
-	accessToken, refreshToken, err := s.users.Login(ctx, req.Username, req.VerifierCandidate)
+	tokens, err := s.users.Login(ctx, req.Username, req.VerifierCandidate)
 
 	if err != nil {
-		s.logger.Error(ctx, err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
+		if errors.Is(err, common.ErrorUnauthorized) {
+			return nil, status.Error(codes.Unauthenticated, "unauthorized")
+		}
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return &pb.LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	return &pb.LoginResponse{AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken}, nil
 
 }
 

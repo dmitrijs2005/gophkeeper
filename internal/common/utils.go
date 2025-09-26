@@ -1,6 +1,6 @@
-// Package shared provides utility functions for working with
+// Package common provides utility functions for working with
 // random strings and secure memory wiping.
-package shared
+package common
 
 import (
 	"crypto/rand"
@@ -44,4 +44,10 @@ func WipeByteArray(b []byte) {
 	for i := range b {
 		b[i] = 0
 	}
+}
+
+func GenerateRandByteArray(size int) []byte {
+	buff := make([]byte, size)
+	rand.Read(buff)
+	return buff
 }

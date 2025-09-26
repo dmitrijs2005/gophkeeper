@@ -1,36 +1,28 @@
 package cli
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
-	"strings"
+	"log"
 
-	"golang.org/x/term"
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 )
 
-func (a *App) Register() {
+func (a *App) Register(ctx context.Context) {
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Enter user name (email)")
-
-	userName, err := reader.ReadString('\n')
+	userName, err := GetSimpleText(a.reader, "-Enter email")
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		log.Printf("error: %v", err)
 	}
 
-	userName = strings.TrimSpace(userName)
-	fmt.Println("Enter password")
-	password, err := term.ReadPassword(int(os.Stdin.Fd()))
-
+	password, err := GetPassword()
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		log.Printf("error: %v", err)
 	}
 
-	err = a.clientService.Register(context.Background(), userName, password)
+	defer common.WipeByteArray(password)
+
+	err = a.authService.Register(ctx, userName, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

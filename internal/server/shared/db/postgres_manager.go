@@ -3,9 +3,10 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
-	migrations "github.com/dmitrijs2005/gophkeeper/internal/migrations/server"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/entries"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/migrations"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/refreshtokens"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/users"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -36,7 +37,7 @@ func (m *PostgresRepositoryManager) Entries() entries.Repository {
 }
 
 func (m *PostgresRepositoryManager) RunMigrations(ctx context.Context) error {
-	goose.SetBaseFS(migrations.Migrations) // Вот здесь передаём embed FS!
+	goose.SetBaseFS(migrations.Migrations)
 
 	if err := goose.UpContext(ctx, m.db, "."); err != nil {
 		return err
@@ -49,22 +50,22 @@ func NewPostgresRepositoryManager(dsn string) (RepositoryManager, error) {
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db open error: %w", err)
 	}
 
 	users, err := users.NewPostgresRepository(db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("user repo creation error: %w", err)
 	}
 
 	refreshTokens, err := refreshtokens.NewPostgresRepository(db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("refresh token repo creation error: %w", err)
 	}
 
 	entries, err := entries.NewPostgresRepository(db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("entry repo creation error: %w", err)
 	}
 
 	m := &PostgresRepositoryManager{
@@ -76,7 +77,7 @@ func NewPostgresRepositoryManager(dsn string) (RepositoryManager, error) {
 
 	err = m.RunMigrations(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("migration error: %w", err)
 	}
 
 	return m, nil

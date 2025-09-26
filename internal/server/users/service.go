@@ -3,14 +3,20 @@ package users
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/auth"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/config"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/refreshtokens"
-	"github.com/dmitrijs2005/gophkeeper/internal/shared"
 )
+
+type TokenPair struct {
+	AccessToken  string
+	RefreshToken string
+}
 
 type Service struct {
 	repo                         Repository
@@ -46,43 +52,72 @@ func (s *Service) Register(ctx context.Context, username string, salt, verifier 
 	return user, nil
 }
 
+func (s *Service) getRandomSalt() []byte {
+	return common.GenerateRandByteArray(32)
+}
+
 func (s *Service) GetSalt(ctx context.Context, userName string) ([]byte, error) {
 
 	user, err := s.repo.GetUserByLogin(ctx, userName)
 	if err != nil {
-		return nil, fmt.Errorf("error selecting user0: %v", err)
+		if errors.Is(err, common.ErrorNotFound) {
+			// if user not found, returning random salt
+			return s.getRandomSalt(), nil
+		}
+		return nil, common.ErrorInternal
 	}
 
 	return user.Salt, nil
 }
 
-func (s *Service) Login(ctx context.Context, userName string, verifierCandidate []byte) (string, string, error) {
+func (s *Service) generateAccessToken(ctx context.Context, user *User) (string, error) {
+	token, err := auth.GenerateToken(user.ID, s.jwtSecret, s.accessTokenValidityDuration)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func (s *Service) generateRefreshToken() (string, error) {
+	token, err := common.MakeRandHexString(32)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func (s *Service) checkVerifier(verifier []byte, verifierCandidate []byte) bool {
+	return subtle.ConstantTimeCompare(verifier, verifierCandidate) == 1
+}
+
+func (s *Service) Login(ctx context.Context, userName string, verifierCandidate []byte) (*TokenPair, error) {
 
 	user, err := s.repo.GetUserByLogin(ctx, userName)
 	if err != nil {
-		return "", "", fmt.Errorf("error selecting user1: %v", err)
+		if errors.Is(err, common.ErrorNotFound) {
+			return nil, common.ErrorUnauthorized
+		}
+		return nil, common.ErrorInternal
 	}
 
-	if subtle.ConstantTimeCompare(user.Verifier, verifierCandidate) != 1 {
-
-		return "", "", fmt.Errorf("error selecting user2: %v", err)
+	if !s.checkVerifier(user.Verifier, verifierCandidate) {
+		return nil, common.ErrorUnauthorized
 	}
 
-	// everything is ok, username + verifier match
-	accessToken, err := auth.GenerateToken(user.ID, s.jwtSecret, s.accessTokenValidityDuration)
+	accessToken, err := s.generateAccessToken(ctx, user)
 	if err != nil {
-		return "", "", fmt.Errorf("error selecting user3: %v", err)
+		return nil, common.ErrorInternal
 	}
 
-	refreshtoken, err := shared.MakeRandHexString(32)
+	refreshtoken, err := s.generateRefreshToken()
 	if err != nil {
-		return "", "", fmt.Errorf("error selecting user4: %v", err)
+		return nil, common.ErrorInternal
 	}
 
 	err = s.refreshTokenRepo.Create(ctx, user.ID, refreshtoken, s.refreshTokenValidityDuration)
 	if err != nil {
-		return "", "", fmt.Errorf("error selecting user5: %v", err)
+		return nil, common.ErrorInternal
 	}
 
-	return accessToken, refreshtoken, nil
+	return &TokenPair{AccessToken: accessToken, RefreshToken: refreshtoken}, nil
 }

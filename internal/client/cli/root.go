@@ -2,18 +2,36 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
 
-func (a *App) Main() {
+func (a *App) getStatus() string {
+	s := ""
+	if a.userName != "" {
+		s = a.userName + " "
+	}
+	if a.Mode != "" {
+		s = s + string(a.Mode)
+	}
+	if s != "" {
+		s = fmt.Sprintf("(%s)", s)
+	}
+	return s
+}
 
-	fmt.Println("GophKeeper CLI (type 'help' for commands)")
+func (a *App) Root(ctx context.Context) {
+
+	log.Println("Welcome to GophKeeper CLI (type 'help' for commands)")
 	scanner := bufio.NewScanner(os.Stdin)
 
+	a.Login(ctx)
+
 	for {
-		fmt.Printf("gophkeeper %s > ", a.showLogin())
+		fmt.Printf("gcli %s> ", a.getStatus())
 		if !scanner.Scan() {
 			break
 		}
@@ -29,24 +47,32 @@ func (a *App) Main() {
 		switch cmd {
 		case "help":
 			if a.isLoggedIn() {
-				fmt.Println("Available commands: list, addnote, addfile, logout, exit")
+				fmt.Println("Available commands: (l)ist, addnote, addlogin, logout, exit, (d)elete")
 			} else {
 				fmt.Println("Available commands: register, login")
 			}
 
 		case "register":
-			a.Register()
+			a.Register(ctx)
 		case "login":
-			a.Login()
+			a.Login(ctx)
 		case "addnote":
-			a.AddNote()
+			a.addNote(ctx)
+		case "addlogin":
+			a.addLogin(ctx)
+		case "list":
+			a.list(ctx)
+		case "delete":
+			a.delete(ctx)
 		case "addfile":
 			a.AddFile()
+		case "addcard":
+			a.addCreditCard(ctx)
+		case "show":
+			a.show(ctx)
 		case "exit", "quit":
 			fmt.Println("Bye!")
 			return
-		case "list":
-			fmt.Println("Entries: (stub)")
 		case "get":
 			if len(args) == 0 {
 				fmt.Println("Usage: get <id>")

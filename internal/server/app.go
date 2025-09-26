@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -36,7 +37,7 @@ func NewApp(c *config.Config) (*App, error) {
 
 	um, err := db.NewPostgresRepositoryManager(config.DatabaseDSN)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db init error: %w", err)
 	}
 
 	us := users.NewService(um.Users(), um.RefreshTokens(), c)
@@ -72,7 +73,7 @@ func (app *App) startGRPCServer(ctx context.Context, cancelFunc context.CancelFu
 	}
 }
 
-func (app *App) Run() {
+func (app *App) Run(ctx context.Context) {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 

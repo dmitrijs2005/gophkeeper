@@ -1,56 +1,55 @@
 package cli
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"os"
-	"strings"
+	"errors"
+	"log"
 
-	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
-	"github.com/dmitrijs2005/gophkeeper/internal/shared"
-	"golang.org/x/term"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 )
 
-func (a *App) Login() {
+func (a *App) Login(ctx context.Context) {
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Enter user name (email)")
-
-	userName, err := reader.ReadString('\n')
+	userName, err := GetSimpleText(a.reader, "-Enter email")
 	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	userName = strings.TrimSpace(userName)
-
-	fmt.Println("Enter password")
-	password, err := term.ReadPassword(int(os.Stdin.Fd()))
-	defer shared.WipeByteArray(password)
-
-	if err != nil {
-		fmt.Println(err.Error())
+		log.Printf("error: %v", err)
 		return
 	}
 
-	salt, err := a.clientService.GetSalt(context.Background(), userName)
+	password, err := GetPassword()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Printf("error: %v", err)
 		return
 	}
 
-	key := utils.DeriveMasterKey(password, salt)
+	defer common.WipeByteArray(password)
 
-	err = a.clientService.Login(context.Background(), userName, key)
+	var masterKey []byte
+	var mode Mode
+
+	masterKey, err = a.authService.OnlineLogin(ctx, userName, password)
 
 	if err != nil {
-		fmt.Println(err.Error())
+		if errors.Is(err, client.ErrUnavailable) {
+			log.Printf("Server unavailable, trying offline login...")
+			masterKey, err = a.authService.OfflineLogin(ctx, userName, password)
+			if err != nil {
+				log.Printf("Offline login unsuccessfull: %s", err.Error())
+				mode = ModeDisabled
+			} else {
+				log.Printf("Offline login successfull: %s", err.Error())
+				mode = ModeOffline
+			}
+		} else {
+			log.Printf("Login unsuccessfull: %s", err.Error())
+		}
 		return
+	} else {
+		log.Printf("Login successfull")
 	}
 
-	fmt.Println("Success!")
-
-	a.userName = userName
-	a.masterKey = key
+	a.masterKey = masterKey
+	a.setMode(mode)
 
 }

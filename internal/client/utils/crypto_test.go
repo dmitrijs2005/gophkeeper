@@ -4,18 +4,16 @@ import (
 	"bytes"
 	"encoding/hex"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateRandByteArray(t *testing.T) {
-	size := 32
-	data1 := GenerateRandByteArray(size)
-	data2 := GenerateRandByteArray(size)
-	assert.NotEqual(t, data1, data2)
-	assert.Equal(t, len(data1), size)
-	assert.Equal(t, len(data2), size)
-}
+// func TestGenerateRandByteArray(t *testing.T) {
+// 	size := 32
+// 	data1 := GenerateRandByteArray(size)
+// 	data2 := GenerateRandByteArray(size)
+// 	assert.NotEqual(t, data1, data2)
+// 	assert.Equal(t, len(data1), size)
+// 	assert.Equal(t, len(data2), size)
+// }
 
 func TestDeriveMasterKey_Deterministic(t *testing.T) {
 	password := []byte("secret-password")

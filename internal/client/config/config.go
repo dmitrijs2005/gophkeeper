@@ -4,7 +4,7 @@ package config
 
 func (c *Config) LoadDefaults() {
 	c.UseGRPC = true
-	c.ServerEndpointAddr = ":50051"
+	c.ServerEndpointAddr = "127.0.0.1:50051"
 }
 
 type Config struct {

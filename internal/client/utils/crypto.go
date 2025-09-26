@@ -4,17 +4,17 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"os"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	"golang.org/x/crypto/argon2"
 )
 
-func GenerateRandByteArray(size int) []byte {
-	buff := make([]byte, size)
-	rand.Read(buff)
-	return buff
+func MakeVerifier(masterKey []byte) []byte {
+	hash := sha256.Sum256(masterKey)
+	return hash[:]
 }
 
 func DeriveMasterKey(password []byte, salt []byte) []byte {
@@ -86,8 +86,6 @@ func EncryptEntry(entry any, key []byte) (ciphertext, nonce []byte, err error) {
 	// encrypting
 	ciphertext = aesgcm.Seal(nil, nonce, plaintext, nil)
 
-	fmt.Println(ciphertext, nonce, plaintext)
-
 	return ciphertext, nonce, nil
 }
 
@@ -153,7 +151,7 @@ func EncryptFile(path string) (*EncryptedFile, error) {
 	}
 
 	// random file_key (32 байта)
-	key := GenerateRandByteArray(32)
+	key := common.GenerateRandByteArray(32)
 
 	// creating AES-GCM
 	block, err := aes.NewCipher(key)
@@ -166,7 +164,7 @@ func EncryptFile(path string) (*EncryptedFile, error) {
 	}
 
 	// nonce
-	nonce := GenerateRandByteArray(aesgcm.NonceSize())
+	nonce := common.GenerateRandByteArray(aesgcm.NonceSize())
 
 	// шифруем
 	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)

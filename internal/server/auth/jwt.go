@@ -3,12 +3,10 @@ package auth
 import (
 	"time"
 
-	"github.com/dmitrijs2005/gophkeeper/internal/shared"
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claims — структура утверждений, которая включает стандартные утверждения и
-// одно пользовательское UserID
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID string
@@ -41,7 +39,7 @@ func GetUserIDFromToken(tokenString string, secretKey []byte) (string, error) {
 	}
 
 	if !token.Valid {
-		return "", shared.ErrorInvalidToken
+		return "", common.ErrInvalidToken
 	}
 
 	return claims.UserID, nil

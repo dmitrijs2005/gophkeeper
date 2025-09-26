@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/server"
@@ -9,6 +10,7 @@ import (
 
 func main() {
 
+	ctx := context.Background()
 	cfg := config.LoadConfig()
 	app, err := server.NewApp(cfg)
 
@@ -17,6 +19,6 @@ func main() {
 		return
 	}
 
-	app.Run()
+	app.Run(ctx)
 
 }
