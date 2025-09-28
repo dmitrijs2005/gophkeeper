@@ -91,3 +91,9 @@ func (s *GRPCServer) GetPresignedGetUrl(ctx context.Context, req *pb.GetPresigne
 	}
 	return &pb.GetPresignedGetUrlResponse{Url: result}, nil
 }
+
+func (s *GRPCServer) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
+
+	return &pb.PingResponse{Status: "OK"}, nil
+
+}

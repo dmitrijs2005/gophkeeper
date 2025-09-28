@@ -146,6 +146,23 @@ func (s *GRPCClient) GetPresignedGetURL(ctx context.Context, key string) (string
 
 }
 
+func (s *GRPCClient) Ping(ctx context.Context) error {
+
+	req := &pb.PingRequest{}
+
+	resp, err := s.client.Ping(ctx, req)
+	if err != nil {
+		return s.mapError(err)
+	}
+
+	if resp.Status != "OK" {
+		return ErrUnavailable
+	}
+
+	return nil
+
+}
+
 func (s *GRPCClient) mapError(err error) error {
 	if err == nil {
 		return nil

@@ -30,6 +30,10 @@ func (a *App) Root(ctx context.Context) {
 
 	a.Login(ctx)
 
+	go func() {
+		a.StartOnlineStatusWatcher(ctx, a.config.OnlineCheckInterval)
+	}()
+
 	for {
 		fmt.Printf("gcli %s> ", a.getStatus())
 		if !scanner.Scan() {

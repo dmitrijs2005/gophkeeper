@@ -25,6 +25,7 @@ const (
 	GophKeeperService_AddEntry_FullMethodName           = "/gophkeeper.service.GophKeeperService/AddEntry"
 	GophKeeperService_GetPresignedPutUrl_FullMethodName = "/gophkeeper.service.GophKeeperService/GetPresignedPutUrl"
 	GophKeeperService_GetPresignedGetUrl_FullMethodName = "/gophkeeper.service.GophKeeperService/GetPresignedGetUrl"
+	GophKeeperService_Ping_FullMethodName               = "/gophkeeper.service.GophKeeperService/Ping"
 )
 
 // GophKeeperServiceClient is the client API for GophKeeperService service.
@@ -37,6 +38,7 @@ type GophKeeperServiceClient interface {
 	AddEntry(ctx context.Context, in *AddEntryRequest, opts ...grpc.CallOption) (*AddEntryResponse, error)
 	GetPresignedPutUrl(ctx context.Context, in *GetPresignedPutUrlRequest, opts ...grpc.CallOption) (*GetPresignedPutUrlResponse, error)
 	GetPresignedGetUrl(ctx context.Context, in *GetPresignedGetUrlRequest, opts ...grpc.CallOption) (*GetPresignedGetUrlResponse, error)
+	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 }
 
 type gophKeeperServiceClient struct {
@@ -107,6 +109,16 @@ func (c *gophKeeperServiceClient) GetPresignedGetUrl(ctx context.Context, in *Ge
 	return out, nil
 }
 
+func (c *gophKeeperServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PingResponse)
+	err := c.cc.Invoke(ctx, GophKeeperService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophKeeperServiceServer is the server API for GophKeeperService service.
 // All implementations must embed UnimplementedGophKeeperServiceServer
 // for forward compatibility.
@@ -117,6 +129,7 @@ type GophKeeperServiceServer interface {
 	AddEntry(context.Context, *AddEntryRequest) (*AddEntryResponse, error)
 	GetPresignedPutUrl(context.Context, *GetPresignedPutUrlRequest) (*GetPresignedPutUrlResponse, error)
 	GetPresignedGetUrl(context.Context, *GetPresignedGetUrlRequest) (*GetPresignedGetUrlResponse, error)
+	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	mustEmbedUnimplementedGophKeeperServiceServer()
 }
 
@@ -144,6 +157,9 @@ func (UnimplementedGophKeeperServiceServer) GetPresignedPutUrl(context.Context, 
 }
 func (UnimplementedGophKeeperServiceServer) GetPresignedGetUrl(context.Context, *GetPresignedGetUrlRequest) (*GetPresignedGetUrlResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPresignedGetUrl not implemented")
+}
+func (UnimplementedGophKeeperServiceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 func (UnimplementedGophKeeperServiceServer) mustEmbedUnimplementedGophKeeperServiceServer() {}
 func (UnimplementedGophKeeperServiceServer) testEmbeddedByValue()                           {}
@@ -274,6 +290,24 @@ func _GophKeeperService_GetPresignedGetUrl_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GophKeeperService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServiceServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeperService_Ping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServiceServer).Ping(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GophKeeperService_ServiceDesc is the grpc.ServiceDesc for GophKeeperService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +338,10 @@ var GophKeeperService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPresignedGetUrl",
 			Handler:    _GophKeeperService_GetPresignedGetUrl_Handler,
+		},
+		{
+			MethodName: "Ping",
+			Handler:    _GophKeeperService_Ping_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

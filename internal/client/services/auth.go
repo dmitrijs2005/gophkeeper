@@ -16,6 +16,7 @@ type AuthService interface {
 	OfflineLogin(ctx context.Context, username string, password []byte) ([]byte, error)
 	OnlineLogin(ctx context.Context, username string, password []byte) ([]byte, error)
 	Register(ctx context.Context, username string, password []byte) error
+	Ping(ctx context.Context) error
 	Close(ctx context.Context) error
 }
 
@@ -103,6 +104,10 @@ func (a *authService) Register(ctx context.Context, username string, password []
 
 	return nil
 
+}
+
+func (a *authService) Ping(ctx context.Context) error {
+	return a.client.Ping(ctx)
 }
 
 func (a *authService) Close(ctx context.Context) error {

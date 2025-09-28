@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/config"
@@ -73,4 +74,34 @@ func (a *App) Run(ctx context.Context) {
 
 func (a *App) isLoggedIn() bool {
 	return a.userName != ""
+}
+
+func (a *App) StartOnlineStatusWatcher(ctx context.Context, interval time.Duration) {
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			err := a.authService.Ping(ctx)
+			cancel()
+
+			log.Println(err)
+
+			if err != nil {
+				if a.Mode == ModeOnline {
+					a.setMode(ModeOffline)
+				}
+			} else {
+				if a.Mode != ModeOnline {
+					a.setMode(ModeOnline)
+				}
+			}
+
+		case <-ctx.Done():
+			return
+		}
+	}
 }

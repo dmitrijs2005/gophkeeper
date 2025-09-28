@@ -59,6 +59,13 @@ message GetPresignedGetUrlResponse {
   string url = 1;
 }
 
+message PingRequest {
+}
+
+message PingResponse {
+  string status = 1;
+}
+
 service GophKeeperService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
@@ -66,4 +73,5 @@ service GophKeeperService {
   rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
   rpc GetPresignedPutUrl(GetPresignedPutUrlRequest) returns (GetPresignedPutUrlResponse);
   rpc GetPresignedGetUrl(GetPresignedGetUrlRequest) returns (GetPresignedGetUrlResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
 }
