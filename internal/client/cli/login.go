@@ -38,13 +38,12 @@ func (a *App) Login(ctx context.Context) {
 				log.Printf("Offline login unsuccessfull: %s", err.Error())
 				mode = ModeDisabled
 			} else {
-				log.Printf("Offline login successfull: %s", err.Error())
+				log.Printf("Offline login successfull")
 				mode = ModeOffline
 			}
 		} else {
 			log.Printf("Login unsuccessfull: %s", err.Error())
 		}
-		return
 	} else {
 		log.Printf("Login successfull")
 	}

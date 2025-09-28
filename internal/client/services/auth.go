@@ -88,7 +88,31 @@ func (a *authService) OnlineLogin(ctx context.Context, userName string, password
 		return nil, err
 	}
 
+	if err := a.saveOfflineData(ctx, userName, salt, verifierCandidate); err != nil {
+		return nil, err
+	}
+
 	return masterKeyCandidate, nil
+}
+
+func (a *authService) saveOfflineData(ctx context.Context,
+	userName string,
+	salt []byte,
+	varifier []byte) error {
+
+	if err := a.metadataRepo.Set(ctx, "username", []byte(userName)); err != nil {
+		return err
+	}
+
+	if err := a.metadataRepo.Set(ctx, "salt", salt); err != nil {
+		return err
+	}
+
+	if err := a.metadataRepo.Set(ctx, "verifier", varifier); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *authService) Register(ctx context.Context, username string, password []byte) error {
