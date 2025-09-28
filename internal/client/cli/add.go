@@ -38,6 +38,10 @@ func (a *App) addLogin(ctx context.Context) {
 	a.addEntry(ctx, a.addLoginDetails)
 }
 
+func (a *App) addFile(ctx context.Context) {
+	a.addEntry(ctx, a.addFileDetails)
+}
+
 func (a *App) addNoteDetails(ctx context.Context) (models.TypedEntry, error) {
 
 	text, err := GetMultiline(a.reader, "- Enter note text (double Enter to finish):")
@@ -70,7 +74,7 @@ func (a *App) addCreditCardDetails(ctx context.Context) (models.TypedEntry, erro
 
 func (a *App) addLoginDetails(ctx context.Context) (models.TypedEntry, error) {
 
-	username, err := GetSimpleText(a.reader, "Ent1er username")
+	username, err := GetSimpleText(a.reader, "Enter username")
 	if err != nil {
 		log.Printf("error: %v", err)
 		return nil, err
@@ -89,6 +93,18 @@ func (a *App) addLoginDetails(ctx context.Context) (models.TypedEntry, error) {
 	}
 
 	return &models.Login{Username: username, Password: password, URL: url}, nil
+
+}
+
+func (a *App) addFileDetails(ctx context.Context) (models.TypedEntry, error) {
+
+	filePath, err := GetSimpleText(a.reader, "Enter file path")
+	if err != nil {
+		log.Printf("error: %v", err)
+		return nil, err
+	}
+
+	return &models.FileOffline{Path: filePath}, nil
 
 }
 

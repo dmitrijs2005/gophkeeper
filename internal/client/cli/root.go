@@ -65,7 +65,7 @@ func (a *App) Root(ctx context.Context) {
 		case "delete":
 			a.delete(ctx)
 		case "addfile":
-			a.AddFile()
+			a.addFile(ctx)
 		case "addcard":
 			a.addCreditCard(ctx)
 		case "show":

@@ -11,10 +11,11 @@ import (
 type EntryType string
 
 const (
-	EntryTypeNote       EntryType = "note"
-	EntryTypeFile       EntryType = "file"
-	EntryTypeLogin      EntryType = "login"
-	EntryTypeCreditCard EntryType = "credit_card"
+	EntryTypeNote        EntryType = "note"
+	EntryTypeFile        EntryType = "file"
+	EntryTypeLogin       EntryType = "login"
+	EntryTypeCreditCard  EntryType = "credit_card"
+	EntryTypeFileOffline EntryType = "file_offline"
 )
 
 var ErrIncorrectMetadata = errors.New("metadata item must be name=value")
@@ -118,3 +119,10 @@ type File struct {
 }
 
 func (x File) GetType() EntryType { return EntryTypeFile }
+
+// structure for offline file adding
+type FileOffline struct {
+	Path string `json:"path"`
+}
+
+func (x FileOffline) GetType() EntryType { return EntryTypeFileOffline }
