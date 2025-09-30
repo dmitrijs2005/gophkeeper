@@ -6,21 +6,20 @@ import (
 
 	"github.com/dmitrijs2005/gophkeeper/internal/logging"
 	pb "github.com/dmitrijs2005/gophkeeper/internal/proto"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/entries"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/users"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/services"
 	"google.golang.org/grpc"
 )
 
 type GRPCServer struct {
 	pb.UnimplementedGophKeeperServiceServer
 	address   string
-	users     *users.Service
-	entries   *entries.Service
+	users     *services.UserService
+	entries   *services.EntryService
 	logger    logging.Logger
 	jwtSecret []byte
 }
 
-func NewgGRPCServer(a string, l logging.Logger, us *users.Service, es *entries.Service, secretKey string) (*GRPCServer, error) {
+func NewgGRPCServer(a string, l logging.Logger, us *services.UserService, es *services.EntryService, secretKey string) (*GRPCServer, error) {
 	return &GRPCServer{
 		address:   a,
 		logger:    l.With("module", "grpc_server"),

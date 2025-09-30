@@ -54,46 +54,24 @@ func (s *GRPCServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Login
 
 }
 
-func (s *GRPCServer) AddEntry(ctx context.Context, req *pb.AddEntryRequest) (*pb.AddEntryResponse, error) {
-
-	userID, ok := ctx.Value(userIDKey).(string)
-	if !ok {
-		return nil, fmt.Errorf("no user id in context")
-	}
-
-	s.logger.Info(ctx, "Add entry request")
-
-	_, err := s.entries.Create(ctx, userID, req.Title, req.Type, req.Cyphertext, req.Nonce)
-
-	if err != nil {
-		s.logger.Error(ctx, err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	return &pb.AddEntryResponse{Result: "ok"}, nil
-
-}
-
-func (s *GRPCServer) GetPresignedPutUrl(ctx context.Context, req *pb.GetPresignedPutUrlRequest) (*pb.GetPresignedPutUrlResponse, error) {
-	key, url, err := s.entries.GetPresignedPutUrl(ctx)
-	if err != nil {
-		s.logger.Error(ctx, err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	return &pb.GetPresignedPutUrlResponse{Key: key, Url: url}, nil
-}
-
-func (s *GRPCServer) GetPresignedGetUrl(ctx context.Context, req *pb.GetPresignedGetUrlRequest) (*pb.GetPresignedGetUrlResponse, error) {
-	result, err := s.entries.GetPresignedGetUrl(ctx, req.Key)
-	if err != nil {
-		s.logger.Error(ctx, err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	return &pb.GetPresignedGetUrlResponse{Url: result}, nil
-}
-
 func (s *GRPCServer) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
 
 	return &pb.PingResponse{Status: "OK"}, nil
 
 }
+
+func (s *GRPCServer) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncResponse, error) {
+
+	for a, b := range req.Entries {
+		fmt.Println(a, b)
+	}
+
+	var ProcessedEntries []*pb.Entry
+
+	//x := s.entries.Sync(ctx, )
+
+	return &pb.SyncResponse{ProcessedEntries: ProcessedEntries}, nil
+
+}
+
+//func (s *GRPCServer) reqToEntries()

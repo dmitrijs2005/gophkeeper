@@ -7,17 +7,19 @@ import (
 	"fmt"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/tx"
 )
 
 type PostgresRepository struct {
-	db *sql.DB
+	db tx.DBTX
 }
 
-func NewPostgresRepository(db *sql.DB) (*PostgresRepository, error) {
-	return &PostgresRepository{db: db}, nil
+func NewPostgresRepository(db tx.DBTX) *PostgresRepository {
+	return &PostgresRepository{db: db}
 }
 
-func (r *PostgresRepository) Create(ctx context.Context, user *User) (*User, error) {
+func (r *PostgresRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
 
 	query :=
 		`INSERT INTO users (username, salt, master_key_verifier)
@@ -35,13 +37,13 @@ func (r *PostgresRepository) Create(ctx context.Context, user *User) (*User, err
 	return user, nil
 }
 
-func (r *PostgresRepository) GetUserByLogin(ctx context.Context, userName string) (*User, error) {
+func (r *PostgresRepository) GetUserByLogin(ctx context.Context, userName string) (*models.User, error) {
 	query :=
 		`SELECT ID, username, master_key_verifier, salt FROM users
 		 WHERE username = $1
 		 `
 
-	user := &User{}
+	user := &models.User{}
 	err := r.db.QueryRowContext(ctx, query, userName).Scan(&user.ID, &user.UserName, &user.Verifier, &user.Salt)
 
 	if err != nil {

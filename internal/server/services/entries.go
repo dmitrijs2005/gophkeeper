@@ -1,11 +1,14 @@
-package entries
+package services
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	sc "github.com/dmitrijs2005/gophkeeper/internal/server/config"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,42 +17,46 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-type Service struct {
-	repo   Repository
-	config *sc.Config
+type EntryService struct {
+	db          *sql.DB
+	repomanager repomanager.RepositoryManager
+	config      *sc.Config
 }
 
-func NewService(repo Repository, config *sc.Config) *Service {
-	return &Service{
-		repo:   repo,
-		config: config,
+func NewEntryService(db *sql.DB, repomanager repomanager.RepositoryManager, config *sc.Config) *EntryService {
+	return &EntryService{
+		db:          db,
+		repomanager: repomanager,
+		config:      config,
 	}
 }
 
-func (s *Service) Create(ctx context.Context, userID string, title string, entryType string, cypherText []byte, nonce []byte) (*Entry, error) {
+// func (s *EntryService) Create(ctx context.Context, userID string, title string, entryType string, cypherText []byte, nonce []byte) (*models.Entry, error) {
 
-	entry := &Entry{
-		UserID:        userID,
-		Title:         title,
-		Type:          entryType,
-		EncryptedData: cypherText,
-		Nonce:         nonce,
-	}
+// 	entry := &models.Entry{
+// 		UserID:        userID,
+// 		Title:         title,
+// 		Type:          entryType,
+// 		EncryptedData: cypherText,
+// 		Nonce:         nonce,
+// 	}
 
-	user, err := s.repo.Create(ctx, entry)
-	if err != nil {
-		return nil, fmt.Errorf("error creating entry: %v", err)
-	}
+// 	repo := s.repomanager.
 
-	return user, nil
-}
+// 	user, err := s.repo.Create(ctx, entry)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error creating entry: %v", err)
+// 	}
+
+// 	return user, nil
+// }
 
 func GetRandomStorageKey() string {
 	d := time.Now()
 	return fmt.Sprintf("users/%d/%d/%d/%v", d.Year(), d.Month(), d.Day(), uuid.New())
 }
 
-func (s *Service) getPresignClient() (*s3.PresignClient, error) {
+func (s *EntryService) getPresignClient() (*s3.PresignClient, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion(s.config.S3Region), // обязательный параметр
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
@@ -68,7 +75,7 @@ func (s *Service) getPresignClient() (*s3.PresignClient, error) {
 	return s3.NewPresignClient(client), nil
 }
 
-func (s *Service) GetPresignedPutUrl(ctx context.Context) (string, string, error) {
+func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, error) {
 
 	presignClient, err := s.getPresignClient()
 	if err != nil {
@@ -90,7 +97,7 @@ func (s *Service) GetPresignedPutUrl(ctx context.Context) (string, string, error
 	return key, req.URL, nil
 }
 
-func (s *Service) GetPresignedGetUrl(ctx context.Context, key string) (string, error) {
+func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) {
 
 	presignClient, err := s.getPresignClient()
 	if err != nil {
@@ -109,4 +116,19 @@ func (s *Service) GetPresignedGetUrl(ctx context.Context, key string) (string, e
 	}
 
 	return reg.URL, nil
+}
+
+func (s *EntryService) Sync(ctx context.Context, entries []*models.Entry) error {
+
+	// for a, b := range entries {
+
+	// }
+
+	// user, err := s.repo.Create(ctx, entry)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error creating entry: %v", err)
+	// }
+
+	return nil
+
 }

@@ -32,33 +32,6 @@ message LoginResponse {
   string refresh_token = 2;
 }
 
-message AddEntryRequest {
-  string type = 1;
-  string title = 2;
-  bytes cyphertext = 3;
-  bytes nonce = 4;
-}
-
-message AddEntryResponse {
-  string result = 1;
-}
-
-message GetPresignedPutUrlRequest {
-}
-
-message GetPresignedPutUrlResponse {
-  string key = 1;
-  string url = 2;
-}
-
-message GetPresignedGetUrlRequest {
-  string key = 1;
-}
-
-message GetPresignedGetUrlResponse {
-  string url = 1;
-}
-
 message PingRequest {
 }
 
@@ -66,12 +39,31 @@ message PingResponse {
   string status = 1;
 }
 
+message Entry {
+  string id = 1;
+  int64 version = 2;
+  bytes overview = 3;
+  bytes nonce_overview = 4;
+  bytes details = 5;
+  bytes nonce_details = 6;
+  bool deleted = 7;
+}
+
+message SyncRequest {
+  int64 max_version = 1;
+  repeated Entry entries = 2;
+}
+
+message SyncResponse {
+  int64 global_max_version = 1;
+  repeated Entry processed_entries = 2;
+  repeated Entry new_entries = 3;
+}
+
 service GophKeeperService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
-  rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
-  rpc GetPresignedPutUrl(GetPresignedPutUrlRequest) returns (GetPresignedPutUrlResponse);
-  rpc GetPresignedGetUrl(GetPresignedGetUrlRequest) returns (GetPresignedGetUrlResponse);
   rpc Ping(PingRequest) returns (PingResponse);
+  rpc Sync(SyncRequest) returns (SyncResponse);
 }

@@ -1,0 +1,39 @@
+package tx
+
+import (
+	"context"
+	"database/sql"
+)
+
+type DBTX interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+type UnitOfWork interface {
+	WithTx(ctx context.Context, opts *sql.TxOptions, fn func(ctx context.Context, tx DBTX) error) error
+	//Begin(ctx context.Context, opts *sql.TxOptions) (UnitOfWorkTx, error)
+}
+
+func WithTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions, fn func(ctx context.Context, tx DBTX) error) error {
+	tx, err := db.BeginTx(ctx, opts)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		}
+		if err != nil {
+			_ = tx.Rollback()
+			return
+		}
+		err = tx.Commit()
+	}()
+
+	return fn(ctx, tx)
+
+}

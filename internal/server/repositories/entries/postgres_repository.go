@@ -2,19 +2,21 @@ package entries
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+
+	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/tx"
 )
 
 type PostgresRepository struct {
-	db *sql.DB
+	db tx.DBTX
 }
 
-func NewPostgresRepository(db *sql.DB) (*PostgresRepository, error) {
-	return &PostgresRepository{db: db}, nil
+func NewPostgresRepository(db tx.DBTX) *PostgresRepository {
+	return &PostgresRepository{db: db}
 }
 
-func (r *PostgresRepository) Create(ctx context.Context, entry *Entry) (*Entry, error) {
+func (r *PostgresRepository) Create(ctx context.Context, entry *models.Entry) (*models.Entry, error) {
 
 	query :=
 		`INSERT INTO entries (user_id, title, type, encrypted_data, nonce)

@@ -5,45 +5,61 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/logging"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/config"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/entries"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/db"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/users"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/services"
 
 	gs "github.com/dmitrijs2005/gophkeeper/internal/server/grpc"
 )
 
 type App struct {
+	db           *sql.DB
 	config       *config.Config
 	logger       logging.Logger
-	userService  *users.Service
-	entryService *entries.Service
+	userService  *services.UserService
+	entryService *services.EntryService
 }
 
-func NewApp(c *config.Config) (*App, error) {
+func NewAppFromDSN(cfg *config.Config, logger logging.Logger) (*App, error) {
+	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("ping db: %w", err)
+	}
+	return NewApp(db, cfg, logger)
+}
 
-	slog := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	logger := logging.NewSlogLogger(slog)
+func NewApp(db *sql.DB, c *config.Config, l logging.Logger) (*App, error) {
 
-	config := config.LoadConfig()
+	//config := config.LoadConfig()
 
-	um, err := db.NewPostgresRepositoryManager(config.DatabaseDSN)
+	m, err := repomanager.NewPostgresRepositoryManager(db)
 	if err != nil {
 		return nil, fmt.Errorf("db init error: %w", err)
 	}
 
-	us := users.NewService(um.Users(), um.RefreshTokens(), c)
-	es := entries.NewService(um.Entries(), c)
+	err = m.RunMigrations(context.Background(), db)
+	if err != nil {
+		return nil, fmt.Errorf("migration error: %w", err)
+	}
 
-	return &App{config: config, logger: logger, userService: us, entryService: es}, nil
+	us := services.NewUserService(db, m, c)
+	es := services.NewEntryService(db, m, c)
+
+	return &App{config: c, logger: l, userService: us, entryService: es}, nil
 }
 
 func (app *App) initSignalHandler(cancelFunc context.CancelFunc) {
