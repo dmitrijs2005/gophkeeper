@@ -104,7 +104,7 @@ func (a *App) addFileDetails(ctx context.Context) (models.TypedEntry, error) {
 		return nil, err
 	}
 
-	return &models.FileOffline{Path: filePath}, nil
+	return &models.FilePreupload{Path: filePath}, nil
 
 }
 

@@ -97,32 +97,37 @@ func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, 
 	return key, req.URL, nil
 }
 
-func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) {
+// func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) {
 
-	presignClient, err := s.getPresignClient()
-	if err != nil {
-		return "", err
+// 	presignClient, err := s.getPresignClient()
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	bucket := s.config.S3Bucket
+
+// 	// Presigned GET
+// 	reg, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+// 		Bucket: &bucket,
+// 		Key:    &key,
+// 	}, s3.WithPresignExpires(15*time.Minute))
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return reg.URL, nil
+// }
+
+func (s *EntryService) Sync(ctx context.Context, pendingEntries []*models.Entry) error {
+
+	entryRepo := s.repomanager.Entries(s.db)
+
+	for _, e := range pendingEntries {
+		_, err := entryRepo.Create(ctx, e)
+		if err != nil {
+			return err
+		}
 	}
-
-	bucket := s.config.S3Bucket
-
-	// Presigned GET
-	reg, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: &bucket,
-		Key:    &key,
-	}, s3.WithPresignExpires(15*time.Minute))
-	if err != nil {
-		return "", err
-	}
-
-	return reg.URL, nil
-}
-
-func (s *EntryService) Sync(ctx context.Context, entries []*models.Entry) error {
-
-	// for a, b := range entries {
-
-	// }
 
 	// user, err := s.repo.Create(ctx, entry)
 	// if err != nil {

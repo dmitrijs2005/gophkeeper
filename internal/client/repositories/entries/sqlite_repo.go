@@ -3,6 +3,7 @@ package entries
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
@@ -94,5 +95,33 @@ func (r *SQLiteRepository) GetByID(ctx context.Context, id string) (*models.Entr
 	}
 
 	return e, nil
+
+}
+
+func (r *SQLiteRepository) GetAllPending(ctx context.Context) ([]*models.Entry, error) {
+	query := `select id, overview, nonce_overview, details, nonce_details from entries where pending=1`
+	rows, err := r.db.QueryContext(ctx, query)
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pendingEntries := []*models.Entry{}
+
+	for rows.Next() {
+		var entry = &models.Entry{}
+		err := rows.Scan(&entry.Id, &entry.Overview, &entry.NonceOverview, &entry.Details, &entry.NonceDetails)
+		if err != nil {
+			return nil, err
+		}
+		pendingEntries = append(pendingEntries, entry)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pendingEntries, nil
 
 }

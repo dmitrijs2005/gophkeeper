@@ -13,6 +13,7 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/server/config"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/tx"
 )
 
 type TokenPair struct {
@@ -36,6 +37,44 @@ func NewUserService(db *sql.DB, m repomanager.RepositoryManager, cfg *config.Con
 		accessTokenValidityDuration:  cfg.AccessTokenValidityDuration,
 		refreshTokenValidityDuration: cfg.RefreshTokenValidityDuration,
 	}
+}
+
+func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error) {
+
+	repo := s.repomanager.RefreshTokens(s.db)
+
+	token, err := repo.Find(ctx, refreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("error searching refresh token: %v", err)
+	}
+
+	if token.Expires.Before(time.Now()) {
+		return nil, common.ErrRefreshTokenExpired
+	}
+
+	var tokenPair *TokenPair
+
+	err = tx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx tx.DBTX) error {
+		err = repo.Delete(ctx, refreshToken)
+		if err != nil {
+			return fmt.Errorf("error deleting refresh token: %v", err)
+		}
+
+		tokenPair, err = s.generateTokenPair(ctx, token.UserID)
+		if err != nil {
+			return fmt.Errorf("error generating token pair: %v", err)
+		}
+
+		return err
+
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tokenPair, nil
+
 }
 
 func (s *UserService) Register(ctx context.Context, username string, salt, verifier []byte) (*models.User, error) {
@@ -76,8 +115,8 @@ func (s *UserService) GetSalt(ctx context.Context, userName string) ([]byte, err
 	return user.Salt, nil
 }
 
-func (s *UserService) generateAccessToken(ctx context.Context, user *models.User) (string, error) {
-	token, err := auth.GenerateToken(user.ID, s.jwtSecret, s.accessTokenValidityDuration)
+func (s *UserService) generateAccessToken(ctx context.Context, userID string) (string, error) {
+	token, err := auth.GenerateToken(userID, s.jwtSecret, s.accessTokenValidityDuration)
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +150,11 @@ func (s *UserService) Login(ctx context.Context, userName string, verifierCandid
 		return nil, common.ErrorUnauthorized
 	}
 
-	accessToken, err := s.generateAccessToken(ctx, user)
+	return s.generateTokenPair(ctx, user.ID)
+}
+
+func (s *UserService) generateTokenPair(ctx context.Context, userID string) (*TokenPair, error) {
+	accessToken, err := s.generateAccessToken(ctx, userID)
 	if err != nil {
 		return nil, common.ErrorInternal
 	}
@@ -122,7 +165,7 @@ func (s *UserService) Login(ctx context.Context, userName string, verifierCandid
 	}
 
 	refreshTokenRepo := s.repomanager.RefreshTokens(s.db)
-	err = refreshTokenRepo.Create(ctx, user.ID, refreshtoken, s.refreshTokenValidityDuration)
+	err = refreshTokenRepo.Create(ctx, userID, refreshtoken, s.refreshTokenValidityDuration)
 	if err != nil {
 		return nil, common.ErrorInternal
 	}

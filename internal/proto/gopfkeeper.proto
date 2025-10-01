@@ -60,10 +60,20 @@ message SyncResponse {
   repeated Entry new_entries = 3;
 }
 
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
 service GophKeeperService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc Ping(PingRequest) returns (PingResponse);
   rpc Sync(SyncRequest) returns (SyncResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
 }

@@ -16,3 +16,11 @@ func (a *App) list(ctx context.Context) {
 		fmt.Println(item)
 	}
 }
+
+func (a *App) sync(ctx context.Context) {
+	err := a.entryService.Sync(ctx)
+	if err != nil {
+		log.Printf(err.Error())
+	}
+
+}

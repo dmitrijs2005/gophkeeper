@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+
+	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
 )
 
 type Client interface {
@@ -10,6 +12,5 @@ type Client interface {
 	GetSalt(ctx context.Context, username string) ([]byte, error)
 	Login(ctx context.Context, username string, key []byte) error
 	Ping(ctx context.Context) error
-	GetPresignedPutURL(ctx context.Context) (string, string, error)
-	GetPresignedGetURL(ctx context.Context, key string) (string, error)
+	Sync(ctx context.Context, entries []*models.Entry, maxVersion int64) error
 }

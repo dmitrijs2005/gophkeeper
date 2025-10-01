@@ -3,9 +3,11 @@ package client
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	pb "github.com/dmitrijs2005/gophkeeper/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -22,6 +24,18 @@ type GRPCClient struct {
 	refreshToken string
 }
 
+func withAccessToken(ctx context.Context, token string) context.Context {
+	md, _ := metadata.FromOutgoingContext(ctx)
+	md = md.Copy()
+	if md == nil {
+		md = metadata.MD{}
+	}
+	md.Delete(common.AccessTokenHeaderName)
+	md.Set(common.AccessTokenHeaderName, token)
+
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
 func (s *GRPCClient) accessTokenInterceptor(
 	ctx context.Context,
 	method string,
@@ -31,10 +45,36 @@ func (s *GRPCClient) accessTokenInterceptor(
 	opts ...grpc.CallOption,
 ) error {
 
-	md := metadata.New(map[string]string{"access_token": s.accessToken})
-	ctx = metadata.NewOutgoingContext(ctx, md)
+	ctx = withAccessToken(ctx, s.accessToken)
 
 	err := invoker(ctx, method, req, reply, cc, opts...)
+
+	if err != nil {
+		if status.Code(err) != codes.Unauthenticated {
+			return err
+		}
+
+		if err.Error() != common.ErrTokenExpired.Error() {
+			return err
+		}
+
+		if s.refreshToken == "" {
+			return err
+		}
+
+		refreshTokenResponse, err := s.client.RefreshToken(ctx, &pb.RefreshTokenRequest{RefreshToken: s.refreshToken})
+		if err != nil {
+			return err
+		}
+
+		s.accessToken = refreshTokenResponse.AccessToken
+		s.refreshToken = refreshTokenResponse.RefreshToken
+
+		// TOKENS REFRESHED, creating context with new Access Token
+		ctx = withAccessToken(ctx, s.accessToken)
+		return invoker(ctx, method, req, reply, cc, opts...)
+
+	}
 
 	return err
 }
@@ -109,42 +149,42 @@ func (s *GRPCClient) Close() error {
 	return s.conn.Close()
 }
 
-func (s *GRPCClient) AddEntry(ctx context.Context, entryType models.EntryType, title string, сypherText []byte, nonce []byte) error {
+// func (s *GRPCClient) AddEntry(ctx context.Context, entryType models.EntryType, title string, сypherText []byte, nonce []byte) error {
 
-	req := &pb.AddEntryRequest{Type: string(entryType), Title: title, Cyphertext: сypherText, Nonce: nonce}
+// 	req := &pb.AddEntryRequest{Type: string(entryType), Title: title, Cyphertext: сypherText, Nonce: nonce}
 
-	_, err := s.client.AddEntry(ctx, req)
-	if err != nil {
-		return s.mapError(err)
-	}
+// 	_, err := s.client.AddEntry(ctx, req)
+// 	if err != nil {
+// 		return s.mapError(err)
+// 	}
 
-	return nil
+// 	return nil
 
-}
+// }
 
-func (s *GRPCClient) GetPresignedPutURL(ctx context.Context) (string, string, error) {
-	req := &pb.GetPresignedPutUrlRequest{}
+// func (s *GRPCClient) GetPresignedPutURL(ctx context.Context) (string, string, error) {
+// 	req := &pb.GetPresignedPutUrlRequest{}
 
-	resp, err := s.client.GetPresignedPutUrl(ctx, req)
-	if err != nil {
-		return "", "", s.mapError(err)
-	}
+// 	resp, err := s.client.GetPresignedPutUrl(ctx, req)
+// 	if err != nil {
+// 		return "", "", s.mapError(err)
+// 	}
 
-	return resp.Key, resp.Url, nil
+// 	return resp.Key, resp.Url, nil
 
-}
+// }
 
-func (s *GRPCClient) GetPresignedGetURL(ctx context.Context, key string) (string, error) {
-	req := &pb.GetPresignedPutUrlRequest{}
+// func (s *GRPCClient) GetPresignedGetURL(ctx context.Context, key string) (string, error) {
+// 	req := &pb.GetPresignedPutUrlRequest{}
 
-	resp, err := s.client.GetPresignedPutUrl(ctx, req)
-	if err != nil {
-		return "", s.mapError(err)
-	}
+// 	resp, err := s.client.GetPresignedPutUrl(ctx, req)
+// 	if err != nil {
+// 		return "", s.mapError(err)
+// 	}
 
-	return resp.Url, nil
+// 	return resp.Url, nil
 
-}
+// }
 
 func (s *GRPCClient) Ping(ctx context.Context) error {
 
@@ -157,6 +197,37 @@ func (s *GRPCClient) Ping(ctx context.Context) error {
 
 	if resp.Status != "OK" {
 		return ErrUnavailable
+	}
+
+	return nil
+
+}
+
+func (s *GRPCClient) Sync(ctx context.Context, entries []*models.Entry, maxVersion int64) error {
+
+	reqEntries := make([]*pb.Entry, 0, len(entries))
+
+	for _, e := range entries {
+		entry := &pb.Entry{Id: e.Id,
+			Version:       e.Version,
+			Overview:      e.Overview,
+			NonceOverview: e.NonceOverview,
+			Details:       e.Details,
+			NonceDetails:  e.NonceDetails,
+			Deleted:       e.Deleted,
+		}
+		reqEntries = append(reqEntries, entry)
+	}
+
+	req := &pb.SyncRequest{Entries: reqEntries, MaxVersion: maxVersion}
+
+	resp, err := s.client.Sync(ctx, req)
+	if err != nil {
+		return s.mapError(err)
+	}
+
+	for _, b := range resp.ProcessedEntries {
+		log.Println(b.Id, b.Version)
 	}
 
 	return nil

@@ -74,6 +74,8 @@ func (a *App) Root(ctx context.Context) {
 			a.addCreditCard(ctx)
 		case "show":
 			a.show(ctx)
+		case "sync":
+			a.sync(ctx)
 		case "exit", "quit":
 			fmt.Println("Bye!")
 			return
@@ -83,15 +85,8 @@ func (a *App) Root(ctx context.Context) {
 				continue
 			}
 			fmt.Printf("Fetching entry %s ... (stub)\n", args[0])
-		case "put":
-			if len(args) == 0 {
-				fmt.Println("Usage: put <title>")
-				continue
-			}
-			fmt.Printf("Creating entry with title '%s' ... (stub)\n", args[0])
 		case "logout":
 			fmt.Println("Logged out (stub)")
-
 		default:
 			fmt.Println("Unknown command:", cmd)
 		}

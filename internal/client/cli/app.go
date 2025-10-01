@@ -88,8 +88,6 @@ func (a *App) StartOnlineStatusWatcher(ctx context.Context, interval time.Durati
 			err := a.authService.Ping(ctx)
 			cancel()
 
-			log.Println(err)
-
 			if err != nil {
 				if a.Mode == ModeOnline {
 					a.setMode(ModeOffline)

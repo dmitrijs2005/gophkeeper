@@ -19,12 +19,12 @@ func NewPostgresRepository(db tx.DBTX) *PostgresRepository {
 func (r *PostgresRepository) Create(ctx context.Context, entry *models.Entry) (*models.Entry, error) {
 
 	query :=
-		`INSERT INTO entries (user_id, title, type, encrypted_data, nonce)
-		VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO entries (id, user_id, overview, nonce_overview, details, nonce_details)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id
 		 `
 
-	err := r.db.QueryRowContext(ctx, query, entry.UserID, entry.Title, entry.Type, entry.EncryptedData, entry.Nonce).Scan(&entry.ID)
+	err := r.db.QueryRowContext(ctx, query, entry.ID, entry.UserID, entry.Overview, entry.NonceOverview, entry.Details, entry.NonceDetails).Scan(&entry.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("error performing sql request: %v", err)

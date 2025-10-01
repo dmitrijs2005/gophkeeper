@@ -1,12 +1,12 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE entries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY NOT NULL,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,              -- например "Google account"
-    type TEXT NOT NULL,               -- "login", "note", "card" ...
-    encrypted_data BYTEA NOT NULL,    -- ciphertext
-    nonce BYTEA NOT NULL,             -- nonce для AES-GCM
+    overview BYTEA NOT NULL,
+    nonce_overview BYTEA NOT NULL,
+    details BYTEA NOT NULL,
+    nonce_details BYTEA NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );

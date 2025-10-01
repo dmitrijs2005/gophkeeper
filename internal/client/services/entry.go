@@ -8,16 +8,13 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/entries"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	"github.com/google/uuid"
 )
 
 type EntryService interface {
-	// OfflineLogin(ctx context.Context, username string, password []byte) error
-	// OnlineLogin(ctx context.Context, username string, password []byte) error
-	// Register(ctx context.Context, username string, password []byte) error
-	// Close(ctx context.Context) error
-
+	Sync(ctx context.Context) error
 	List(ctx context.Context, masterKey []byte) ([]models.ViewOverview, error)
 	Add(ctx context.Context, envelope models.Envelope, masterKey []byte) error
 	DeleteByID(ctx context.Context, id string) error
@@ -25,8 +22,9 @@ type EntryService interface {
 }
 
 type entryService struct {
-	client    client.Client
-	entryRepo entries.Repository
+	client       client.Client
+	entryRepo    entries.Repository
+	metadataRepo metadata.Repository
 }
 
 func NewEntryService(client client.Client, entryRepo entries.Repository) EntryService {
@@ -112,4 +110,16 @@ func (s *entryService) Get(ctx context.Context, id string, masterKey []byte) (*m
 	}
 
 	return envelope, err
+}
+
+func (s *entryService) Sync(ctx context.Context) error {
+
+	entries, err := s.entryRepo.GetAllPending(ctx)
+	if err != nil {
+		return fmt.Errorf("error retrieving entries: %w", err)
+	}
+
+	err = s.client.Sync(ctx, entries, int64(1))
+
+	return err
 }

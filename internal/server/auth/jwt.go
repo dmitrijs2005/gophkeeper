@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
@@ -35,6 +36,9 @@ func GetUserIDFromToken(tokenString string, secretKey []byte) (string, error) {
 		return secretKey, nil
 	})
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return "", common.ErrTokenExpired
+		}
 		return "", err
 	}
 

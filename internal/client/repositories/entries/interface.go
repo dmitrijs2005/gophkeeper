@@ -11,7 +11,5 @@ type Repository interface {
 	GetAll(ctx context.Context) ([]models.Entry, error)
 	DeleteByID(ctx context.Context, id string) error
 	GetByID(ctx context.Context, id string) (*models.Entry, error)
-
-	// Update(entry *Entry) error
-
+	GetAllPending(ctx context.Context) ([]*models.Entry, error)
 }

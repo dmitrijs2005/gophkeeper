@@ -3,24 +3,22 @@ package grpc
 import (
 	"context"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/auth"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-type ctxKey string
-
-const userIDKey ctxKey = "userID"
-
 func (s *GRPCServer) accessTokenInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
-	if info.FullMethod == "/gophkeeper.service.GophKeeperService/AddEntry" {
+	if info.FullMethod == "/gophkeeper.service.GophKeeperService/Sync" {
 
 		var accessToken string
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			values := md.Get("access_token")
+			values := md.Get(common.AccessTokenHeaderName)
 			if len(values) > 0 {
 				accessToken = values[0]
 			}
@@ -31,10 +29,10 @@ func (s *GRPCServer) accessTokenInterceptor(ctx context.Context, req interface{}
 
 		userId, err := auth.GetUserIDFromToken(accessToken, s.jwtSecret)
 		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, "err")
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 
-		ctx = context.WithValue(ctx, userIDKey, userId)
+		ctx = context.WithValue(ctx, shared.UserIDKey, userId)
 
 	}
 

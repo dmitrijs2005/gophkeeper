@@ -601,6 +601,102 @@ func (x *SyncResponse) GetNewEntries() []*Entry {
 	return nil
 }
 
+type RefreshTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTokenRequest) Reset() {
+	*x = RefreshTokenRequest{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTokenRequest) ProtoMessage() {}
+
+func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTokenRequest.ProtoReflect.Descriptor instead.
+func (*RefreshTokenRequest) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RefreshTokenRequest) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+type RefreshTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTokenResponse) Reset() {
+	*x = RefreshTokenResponse{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTokenResponse) ProtoMessage() {}
+
+func (x *RefreshTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTokenResponse.ProtoReflect.Descriptor instead.
+func (*RefreshTokenResponse) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RefreshTokenResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *RefreshTokenResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
 var File_internal_proto_gopfkeeper_proto protoreflect.FileDescriptor
 
 const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
@@ -641,13 +737,19 @@ const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
 	"\x12global_max_version\x18\x01 \x01(\x03R\x10globalMaxVersion\x12F\n" +
 	"\x11processed_entries\x18\x02 \x03(\v2\x19.gophkeeper.service.EntryR\x10processedEntries\x12:\n" +
 	"\vnew_entries\x18\x03 \x03(\v2\x19.gophkeeper.service.EntryR\n" +
-	"newEntries2\xae\x03\n" +
+	"newEntries\":\n" +
+	"\x13RefreshTokenRequest\x12#\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"^\n" +
+	"\x14RefreshTokenResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken2\x91\x04\n" +
 	"\x11GophKeeperService\x12a\n" +
 	"\fRegisterUser\x12'.gophkeeper.service.RegisterUserRequest\x1a(.gophkeeper.service.RegisterUserResponse\x12R\n" +
 	"\aGetSalt\x12\".gophkeeper.service.GetSaltRequest\x1a#.gophkeeper.service.GetSaltResponse\x12L\n" +
 	"\x05Login\x12 .gophkeeper.service.LoginRequest\x1a!.gophkeeper.service.LoginResponse\x12I\n" +
 	"\x04Ping\x12\x1f.gophkeeper.service.PingRequest\x1a .gophkeeper.service.PingResponse\x12I\n" +
-	"\x04Sync\x12\x1f.gophkeeper.service.SyncRequest\x1a .gophkeeper.service.SyncResponseB8Z6github.com/dmitrijs2005/gophkeeper/internal/grpc/protob\x06proto3"
+	"\x04Sync\x12\x1f.gophkeeper.service.SyncRequest\x1a .gophkeeper.service.SyncResponse\x12a\n" +
+	"\fRefreshToken\x12'.gophkeeper.service.RefreshTokenRequest\x1a(.gophkeeper.service.RefreshTokenResponseB8Z6github.com/dmitrijs2005/gophkeeper/internal/grpc/protob\x06proto3"
 
 var (
 	file_internal_proto_gopfkeeper_proto_rawDescOnce sync.Once
@@ -661,7 +763,7 @@ func file_internal_proto_gopfkeeper_proto_rawDescGZIP() []byte {
 	return file_internal_proto_gopfkeeper_proto_rawDescData
 }
 
-var file_internal_proto_gopfkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_internal_proto_gopfkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_internal_proto_gopfkeeper_proto_goTypes = []any{
 	(*RegisterUserRequest)(nil),  // 0: gophkeeper.service.RegisterUserRequest
 	(*RegisterUserResponse)(nil), // 1: gophkeeper.service.RegisterUserResponse
@@ -674,6 +776,8 @@ var file_internal_proto_gopfkeeper_proto_goTypes = []any{
 	(*Entry)(nil),                // 8: gophkeeper.service.Entry
 	(*SyncRequest)(nil),          // 9: gophkeeper.service.SyncRequest
 	(*SyncResponse)(nil),         // 10: gophkeeper.service.SyncResponse
+	(*RefreshTokenRequest)(nil),  // 11: gophkeeper.service.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil), // 12: gophkeeper.service.RefreshTokenResponse
 }
 var file_internal_proto_gopfkeeper_proto_depIdxs = []int32{
 	8,  // 0: gophkeeper.service.SyncRequest.entries:type_name -> gophkeeper.service.Entry
@@ -684,13 +788,15 @@ var file_internal_proto_gopfkeeper_proto_depIdxs = []int32{
 	4,  // 5: gophkeeper.service.GophKeeperService.Login:input_type -> gophkeeper.service.LoginRequest
 	6,  // 6: gophkeeper.service.GophKeeperService.Ping:input_type -> gophkeeper.service.PingRequest
 	9,  // 7: gophkeeper.service.GophKeeperService.Sync:input_type -> gophkeeper.service.SyncRequest
-	1,  // 8: gophkeeper.service.GophKeeperService.RegisterUser:output_type -> gophkeeper.service.RegisterUserResponse
-	3,  // 9: gophkeeper.service.GophKeeperService.GetSalt:output_type -> gophkeeper.service.GetSaltResponse
-	5,  // 10: gophkeeper.service.GophKeeperService.Login:output_type -> gophkeeper.service.LoginResponse
-	7,  // 11: gophkeeper.service.GophKeeperService.Ping:output_type -> gophkeeper.service.PingResponse
-	10, // 12: gophkeeper.service.GophKeeperService.Sync:output_type -> gophkeeper.service.SyncResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
+	11, // 8: gophkeeper.service.GophKeeperService.RefreshToken:input_type -> gophkeeper.service.RefreshTokenRequest
+	1,  // 9: gophkeeper.service.GophKeeperService.RegisterUser:output_type -> gophkeeper.service.RegisterUserResponse
+	3,  // 10: gophkeeper.service.GophKeeperService.GetSalt:output_type -> gophkeeper.service.GetSaltResponse
+	5,  // 11: gophkeeper.service.GophKeeperService.Login:output_type -> gophkeeper.service.LoginResponse
+	7,  // 12: gophkeeper.service.GophKeeperService.Ping:output_type -> gophkeeper.service.PingResponse
+	10, // 13: gophkeeper.service.GophKeeperService.Sync:output_type -> gophkeeper.service.SyncResponse
+	12, // 14: gophkeeper.service.GophKeeperService.RefreshToken:output_type -> gophkeeper.service.RefreshTokenResponse
+	9,  // [9:15] is the sub-list for method output_type
+	3,  // [3:9] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -707,7 +813,7 @@ func file_internal_proto_gopfkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_gopfkeeper_proto_rawDesc), len(file_internal_proto_gopfkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

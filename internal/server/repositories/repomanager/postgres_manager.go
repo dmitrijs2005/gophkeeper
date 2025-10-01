@@ -14,9 +14,6 @@ import (
 )
 
 type PostgresRepositoryManager struct {
-	users         users.Repository
-	refreshTokens refreshtokens.Repository
-	entries       entries.Repository
 }
 
 func (m *PostgresRepositoryManager) Users(db tx.DBTX) users.Repository {

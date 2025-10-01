@@ -16,6 +16,10 @@ var (
 
 	ErrInvalidToken = errors.New("invalid token")
 
+	// token specific errors
+	ErrTokenExpired        = errors.New("token expired")
+	ErrRefreshTokenExpired = errors.New("refresh token expired")
+
 	// ErrorAlreadyExists = errors.New("already exists")
 	// ErrorValidation    = errors.New("validation error")
 
@@ -27,7 +31,4 @@ var (
 	// ErrorInvalidPasswordFormat = errors.New("invalid password format")
 	// ErrorInvalidLoginPassword  = errors.New("invalid login/password")
 
-	// // in-memory repository specific errors
-	// ErrorAlreadyInTranscation = errors.New("already in transaction")
-	// ErrorNotInTranscation     = errors.New("not in transaction")
 )

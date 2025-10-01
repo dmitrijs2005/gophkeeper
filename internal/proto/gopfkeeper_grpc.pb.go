@@ -24,6 +24,7 @@ const (
 	GophKeeperService_Login_FullMethodName        = "/gophkeeper.service.GophKeeperService/Login"
 	GophKeeperService_Ping_FullMethodName         = "/gophkeeper.service.GophKeeperService/Ping"
 	GophKeeperService_Sync_FullMethodName         = "/gophkeeper.service.GophKeeperService/Sync"
+	GophKeeperService_RefreshToken_FullMethodName = "/gophkeeper.service.GophKeeperService/RefreshToken"
 )
 
 // GophKeeperServiceClient is the client API for GophKeeperService service.
@@ -35,6 +36,7 @@ type GophKeeperServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncResponse, error)
+	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 }
 
 type gophKeeperServiceClient struct {
@@ -95,6 +97,16 @@ func (c *gophKeeperServiceClient) Sync(ctx context.Context, in *SyncRequest, opt
 	return out, nil
 }
 
+func (c *gophKeeperServiceClient) RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResponse)
+	err := c.cc.Invoke(ctx, GophKeeperService_RefreshToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophKeeperServiceServer is the server API for GophKeeperService service.
 // All implementations must embed UnimplementedGophKeeperServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type GophKeeperServiceServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
+	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	mustEmbedUnimplementedGophKeeperServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedGophKeeperServiceServer) Ping(context.Context, *PingRequest) 
 }
 func (UnimplementedGophKeeperServiceServer) Sync(context.Context, *SyncRequest) (*SyncResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sync not implemented")
+}
+func (UnimplementedGophKeeperServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
 }
 func (UnimplementedGophKeeperServiceServer) mustEmbedUnimplementedGophKeeperServiceServer() {}
 func (UnimplementedGophKeeperServiceServer) testEmbeddedByValue()                           {}
@@ -240,6 +256,24 @@ func _GophKeeperService_Sync_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GophKeeperService_RefreshToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServiceServer).RefreshToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeperService_RefreshToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServiceServer).RefreshToken(ctx, req.(*RefreshTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GophKeeperService_ServiceDesc is the grpc.ServiceDesc for GophKeeperService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var GophKeeperService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Sync",
 			Handler:    _GophKeeperService_Sync_Handler,
+		},
+		{
+			MethodName: "RefreshToken",
+			Handler:    _GophKeeperService_RefreshToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
