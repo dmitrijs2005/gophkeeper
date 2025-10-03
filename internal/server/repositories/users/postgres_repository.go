@@ -7,15 +7,15 @@ import (
 	"fmt"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/tx"
 )
 
 type PostgresRepository struct {
-	db tx.DBTX
+	db dbx.DBTX
 }
 
-func NewPostgresRepository(db tx.DBTX) *PostgresRepository {
+func NewPostgresRepository(db dbx.DBTX) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 
@@ -54,4 +54,21 @@ func (r *PostgresRepository) GetUserByLogin(ctx context.Context, userName string
 	}
 
 	return user, nil
+}
+
+func (r *PostgresRepository) IncrementCurrentVersion(ctx context.Context, userID string) (int64, error) {
+	query :=
+		`UPDATE users set current_version = current_version + 1
+		 WHERE id = $1
+		 RETURNING current_version
+		 `
+
+	var maxVerson int64
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&maxVerson)
+
+	if err != nil {
+		return 0, fmt.Errorf("db error: %w", err)
+	}
+
+	return maxVerson, nil
 }

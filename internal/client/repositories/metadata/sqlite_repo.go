@@ -6,15 +6,15 @@ import (
 	"fmt"
 )
 
-type SQLiteMetadataRepository struct {
+type SQLiteRepository struct {
 	db *sql.DB
 }
 
-func NewSQLiteMetadataRepository(db *sql.DB) *SQLiteMetadataRepository {
-	return &SQLiteMetadataRepository{db: db}
+func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
+	return &SQLiteRepository{db: db}
 }
 
-func (r *SQLiteMetadataRepository) Get(ctx context.Context, key string) ([]byte, error) {
+func (r *SQLiteRepository) Get(ctx context.Context, key string) ([]byte, error) {
 	var value []byte
 	err := r.db.QueryRowContext(ctx, `SELECT value FROM metadata WHERE key = ?`, key).Scan(&value)
 	if err == sql.ErrNoRows {
@@ -26,7 +26,7 @@ func (r *SQLiteMetadataRepository) Get(ctx context.Context, key string) ([]byte,
 	return value, nil
 }
 
-func (r *SQLiteMetadataRepository) Set(ctx context.Context, key string, value []byte) error {
+func (r *SQLiteRepository) Set(ctx context.Context, key string, value []byte) error {
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO metadata (key, value) VALUES (?, ?)
 		ON CONFLICT(key) DO UPDATE SET value = excluded.value
@@ -37,7 +37,7 @@ func (r *SQLiteMetadataRepository) Set(ctx context.Context, key string, value []
 	return nil
 }
 
-func (r *SQLiteMetadataRepository) Delete(ctx context.Context, key string) error {
+func (r *SQLiteRepository) Delete(ctx context.Context, key string) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM metadata WHERE key = ?`, key)
 	if err != nil {
 		return fmt.Errorf("failed to delete metadata[%s]: %w", key, err)
@@ -45,7 +45,15 @@ func (r *SQLiteMetadataRepository) Delete(ctx context.Context, key string) error
 	return nil
 }
 
-func (r *SQLiteMetadataRepository) List(ctx context.Context) (map[string][]byte, error) {
+func (r *SQLiteRepository) Clear(ctx context.Context) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM metadata`)
+	if err != nil {
+		return fmt.Errorf("failed to clear metadata: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLiteRepository) List(ctx context.Context) (map[string][]byte, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT key, value FROM metadata`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list metadata: %w", err)

@@ -12,4 +12,5 @@ type Entry struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Deleted       bool
+	Version       int64
 }

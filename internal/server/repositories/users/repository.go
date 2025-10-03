@@ -9,4 +9,5 @@ import (
 type Repository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
+	IncrementCurrentVersion(ctx context.Context, userID string) (int64, error)
 }

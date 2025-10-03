@@ -7,5 +7,6 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, entry *models.Entry) (*models.Entry, error)
+	CreateOrUpdate(ctx context.Context, entry *models.Entry) error
+	SelectUpdated(ctx context.Context, userID string, minVersion int64) ([]*models.Entry, error)
 }

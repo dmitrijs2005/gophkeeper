@@ -8,8 +8,9 @@ var (
 	ErrorNotFound = errors.New("not found")
 
 	// service specific errors
-	ErrorInternal     = errors.New("internal error")
-	ErrorUnauthorized = errors.New("unauthorized")
+	ErrorInternal      = errors.New("internal error")
+	ErrorUnauthorized  = errors.New("unauthorized")
+	ErrVersionConflict = errors.New("version conflict")
 
 	// item-specific errors
 	ErrorIncorrectMetadata = errors.New("incorrect metadata")

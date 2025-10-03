@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 	sc "github.com/dmitrijs2005/gophkeeper/internal/server/config"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
@@ -30,26 +31,6 @@ func NewEntryService(db *sql.DB, repomanager repomanager.RepositoryManager, conf
 		config:      config,
 	}
 }
-
-// func (s *EntryService) Create(ctx context.Context, userID string, title string, entryType string, cypherText []byte, nonce []byte) (*models.Entry, error) {
-
-// 	entry := &models.Entry{
-// 		UserID:        userID,
-// 		Title:         title,
-// 		Type:          entryType,
-// 		EncryptedData: cypherText,
-// 		Nonce:         nonce,
-// 	}
-
-// 	repo := s.repomanager.
-
-// 	user, err := s.repo.Create(ctx, entry)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error creating entry: %v", err)
-// 	}
-
-// 	return user, nil
-// }
 
 func GetRandomStorageKey() string {
 	d := time.Now()
@@ -118,22 +99,59 @@ func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, 
 // 	return reg.URL, nil
 // }
 
-func (s *EntryService) Sync(ctx context.Context, pendingEntries []*models.Entry) error {
-
-	entryRepo := s.repomanager.Entries(s.db)
-
-	for _, e := range pendingEntries {
-		_, err := entryRepo.Create(ctx, e)
-		if err != nil {
-			return err
+func RemoveByIDOnce(xs []models.Entry, id string) []models.Entry {
+	for i := range xs {
+		if xs[i].ID == id {
+			// порядок сохраняется
+			return append(xs[:i], xs[i+1:]...)
 		}
 	}
+	return xs
+}
 
-	// user, err := s.repo.Create(ctx, entry)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error creating entry: %v", err)
-	// }
+func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries []*models.Entry, maxVersion int64) ([]*models.Entry, []*models.Entry, int64, error) {
 
-	return nil
+	userRepo := s.repomanager.Users(s.db)
+	entryRepo := s.repomanager.Entries(s.db)
+
+	var processedEntries, otherUpdatedEntries []*models.Entry
+	var maxServerVersion int64
+
+	otherUpdatedEntries, err := entryRepo.SelectUpdated(ctx, userID, maxVersion)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
+
+		for _, e := range pendingEntries {
+
+			version, err := userRepo.IncrementCurrentVersion(ctx, userID)
+			if err != nil {
+				return err
+			}
+
+			e.Version = version
+			maxServerVersion = version
+
+			e.UserID = userID
+
+			err = entryRepo.CreateOrUpdate(ctx, e)
+			if err != nil {
+				return err
+			}
+
+			processedEntries = append(processedEntries, e)
+
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("error creating entry: %v", err)
+	}
+
+	return processedEntries, otherUpdatedEntries, maxServerVersion, nil
 
 }

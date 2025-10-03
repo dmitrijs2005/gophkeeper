@@ -96,7 +96,7 @@ func (s *GRPCServer) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncRes
 		pendingEntries = append(pendingEntries, pe)
 	}
 
-	err := s.entries.Sync(ctx, pendingEntries)
+	processedEntries, newEntries, maxVersion, err := s.entries.Sync(ctx, userID, pendingEntries, req.MaxVersion)
 	if err != nil {
 		s.logger.Error(ctx, err.Error())
 		if errors.Is(err, common.ErrorUnauthorized) {
@@ -105,8 +105,36 @@ func (s *GRPCServer) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncRes
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	var processedEntries []*pb.Entry
+	var pe, ne []*pb.Entry
 
-	return &pb.SyncResponse{ProcessedEntries: processedEntries}, nil
+	for _, e := range processedEntries {
+		pe = append(pe, &pb.Entry{
+			Id:            e.ID,
+			Version:       e.Version,
+			Overview:      e.Overview,
+			NonceOverview: e.NonceOverview,
+			Details:       e.Details,
+			NonceDetails:  e.NonceDetails,
+			Deleted:       e.Deleted,
+		})
+	}
+
+	for _, e := range newEntries {
+		ne = append(ne, &pb.Entry{
+			Id:            e.ID,
+			Version:       e.Version,
+			Overview:      e.Overview,
+			NonceOverview: e.NonceOverview,
+			Details:       e.Details,
+			NonceDetails:  e.NonceDetails,
+			Deleted:       e.Deleted,
+		})
+	}
+
+	return &pb.SyncResponse{
+		ProcessedEntries: pe,
+		NewEntries:       ne,
+		GlobalMaxVersion: maxVersion,
+	}, nil
 
 }

@@ -1,4 +1,4 @@
-package tx
+package dbx
 
 import (
 	"context"
@@ -9,11 +9,6 @@ type DBTX interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-}
-
-type UnitOfWork interface {
-	WithTx(ctx context.Context, opts *sql.TxOptions, fn func(ctx context.Context, tx DBTX) error) error
-	//Begin(ctx context.Context, opts *sql.TxOptions) (UnitOfWorkTx, error)
 }
 
 func WithTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions, fn func(ctx context.Context, tx DBTX) error) error {

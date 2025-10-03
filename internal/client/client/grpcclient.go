@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
@@ -203,7 +202,9 @@ func (s *GRPCClient) Ping(ctx context.Context) error {
 
 }
 
-func (s *GRPCClient) Sync(ctx context.Context, entries []*models.Entry, maxVersion int64) error {
+func (s *GRPCClient) Sync(ctx context.Context,
+	entries []*models.Entry,
+	maxVersion int64) ([]*models.Entry, []*models.Entry, int64, error) {
 
 	reqEntries := make([]*pb.Entry, 0, len(entries))
 
@@ -223,14 +224,38 @@ func (s *GRPCClient) Sync(ctx context.Context, entries []*models.Entry, maxVersi
 
 	resp, err := s.client.Sync(ctx, req)
 	if err != nil {
-		return s.mapError(err)
+		return nil, nil, 0, s.mapError(err)
 	}
 
-	for _, b := range resp.ProcessedEntries {
-		log.Println(b.Id, b.Version)
+	v := resp.GlobalMaxVersion
+
+	var pe, ne []*models.Entry
+
+	for _, e := range resp.ProcessedEntries {
+		pe = append(pe, &models.Entry{
+			Id:            e.Id,
+			Version:       e.Version,
+			Deleted:       e.Deleted,
+			Overview:      e.Overview,
+			NonceOverview: e.NonceOverview,
+			Details:       e.Details,
+			NonceDetails:  e.NonceDetails,
+		})
 	}
 
-	return nil
+	for _, e := range resp.NewEntries {
+		ne = append(ne, &models.Entry{
+			Id:            e.Id,
+			Version:       e.Version,
+			Deleted:       e.Deleted,
+			Overview:      e.Overview,
+			NonceOverview: e.NonceOverview,
+			Details:       e.Details,
+			NonceDetails:  e.NonceDetails,
+		})
+	}
+
+	return pe, ne, v, nil
 
 }
 

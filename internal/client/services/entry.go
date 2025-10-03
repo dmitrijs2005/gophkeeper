@@ -1,15 +1,19 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/entries"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 	"github.com/google/uuid"
 )
 
@@ -22,13 +26,20 @@ type EntryService interface {
 }
 
 type entryService struct {
-	client       client.Client
-	entryRepo    entries.Repository
-	metadataRepo metadata.Repository
+	client client.Client
+	db     *sql.DB
 }
 
-func NewEntryService(client client.Client, entryRepo entries.Repository) EntryService {
-	return &entryService{client: client, entryRepo: entryRepo}
+func NewEntryService(client client.Client, db *sql.DB) EntryService {
+	return &entryService{client: client, db: db}
+}
+
+func (s *entryService) getMetadataRepo() metadata.Repository {
+	return metadata.NewSQLiteRepository(s.db)
+}
+
+func (s *entryService) getEntryRepo() entries.Repository {
+	return entries.NewSQLiteRepository(s.db)
 }
 
 func (s *entryService) Add(ctx context.Context, envelope models.Envelope, masterKey []byte) error {
@@ -53,7 +64,8 @@ func (s *entryService) Add(ctx context.Context, envelope models.Envelope, master
 		NonceDetails:  nonce,
 	}
 
-	err = s.entryRepo.Insert(ctx, e)
+	entryRepo := s.getEntryRepo()
+	err = entryRepo.CreateOrUpdate(ctx, e)
 	if err != nil {
 		return fmt.Errorf("saving error: %w", err)
 	}
@@ -64,7 +76,9 @@ func (s *entryService) Add(ctx context.Context, envelope models.Envelope, master
 
 func (s *entryService) List(ctx context.Context, masterKey []byte) ([]models.ViewOverview, error) {
 
-	rows, err := s.entryRepo.GetAll(ctx)
+	entryRepo := s.getEntryRepo()
+
+	rows, err := entryRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}
@@ -88,7 +102,8 @@ func (s *entryService) List(ctx context.Context, masterKey []byte) ([]models.Vie
 
 func (s *entryService) DeleteByID(ctx context.Context, id string) error {
 
-	err := s.entryRepo.DeleteByID(ctx, id)
+	entryRepo := s.getEntryRepo()
+	err := entryRepo.DeleteByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("error deleting entry: %w", err)
 	}
@@ -97,7 +112,8 @@ func (s *entryService) DeleteByID(ctx context.Context, id string) error {
 
 func (s *entryService) Get(ctx context.Context, id string, masterKey []byte) (*models.Envelope, error) {
 
-	entry, err := s.entryRepo.GetByID(ctx, id)
+	entryRepo := s.getEntryRepo()
+	entry, err := entryRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving entry: %w", err)
 	}
@@ -114,12 +130,62 @@ func (s *entryService) Get(ctx context.Context, id string, masterKey []byte) (*m
 
 func (s *entryService) Sync(ctx context.Context) error {
 
-	entries, err := s.entryRepo.GetAllPending(ctx)
+	metadataRepo := s.getMetadataRepo()
+	entryRepo := s.getEntryRepo()
+
+	value, err := metadataRepo.Get(ctx, "current_version")
+	if err != nil {
+		return fmt.Errorf("error retrieving current version: %w", err)
+	}
+
+	sValue := string(bytes.TrimSpace(value))
+	var currentVersion int64
+	if sValue == "" {
+		currentVersion = int64(0)
+	} else {
+		currentVersion, err = strconv.ParseInt(sValue, 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse current_version %q: %w", s, err)
+		}
+	}
+
+	entries, err := entryRepo.GetAllPending(ctx)
 	if err != nil {
 		return fmt.Errorf("error retrieving entries: %w", err)
 	}
 
-	err = s.client.Sync(ctx, entries, int64(1))
+	processed, new, max_version, err := s.client.Sync(ctx, entries, currentVersion)
+	if err != nil {
+		return fmt.Errorf("error client sync: %w", err)
+	}
 
-	return err
+	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
+
+		err := metadataRepo.Set(ctx, "current_version", fmt.Appendf(nil, "%v", max_version))
+		if err != nil {
+			return err
+		}
+
+		for _, e := range processed {
+			err := entryRepo.CreateOrUpdate(ctx, e)
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, e := range new {
+			err := entryRepo.CreateOrUpdate(ctx, e)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("error tx: %w", err)
+	}
+
+	return nil
 }

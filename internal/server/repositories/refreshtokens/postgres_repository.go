@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/tx"
 )
 
 type PostgresRepository struct {
-	db tx.DBTX
+	db dbx.DBTX
 }
 
-func NewPostgresRepository(db tx.DBTX) *PostgresRepository {
+func NewPostgresRepository(db dbx.DBTX) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 

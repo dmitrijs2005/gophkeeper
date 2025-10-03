@@ -29,7 +29,7 @@ func RunMigrations(ctx context.Context, db *sql.DB) error {
 	return goose.UpContext(ctx, db, ".")
 }
 
-func InitDatabase(ctx context.Context, dsn string) (*Repositories, error) {
+func InitDatabase(ctx context.Context, dsn string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
@@ -39,11 +39,5 @@ func InitDatabase(ctx context.Context, dsn string) (*Repositories, error) {
 		return nil, err
 	}
 
-	repos := &Repositories{
-		Metadata: metadata.NewSQLiteMetadataRepository(db),
-		Entry:    entries.NewSQLiteRepository(db),
-		//Vault:    vault.NewSQLiteVaultRepository(db),
-		//DB:       db,
-	}
-	return repos, nil
+	return db, nil
 }

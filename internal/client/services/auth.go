@@ -10,6 +10,7 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 )
 
 type AuthService interface {
@@ -21,21 +22,23 @@ type AuthService interface {
 }
 
 type authService struct {
-	client       client.Client
-	metadataRepo metadata.Repository
+	client client.Client
+	db     *sql.DB
 }
 
-func NewAuthService(client client.Client, metadataRepo metadata.Repository) AuthService {
-	return &authService{client: client, metadataRepo: metadataRepo}
+func NewAuthService(client client.Client, db *sql.DB) AuthService {
+	return &authService{client: client, db: db}
 }
 
-func (a *authService) getMetadataKey(ctx context.Context, key string) ([]byte, error) {
-	return a.metadataRepo.Get(ctx, key)
+func (a *authService) getMetadataRepo() metadata.Repository {
+	return metadata.NewSQLiteRepository(a.db)
 }
 
 func (a *authService) OfflineLogin(ctx context.Context, username string, password []byte) ([]byte, error) {
 
-	savedUsername, err := a.getMetadataKey(ctx, "username")
+	metadataRepo := a.getMetadataRepo()
+
+	savedUsername, err := metadataRepo.Get(ctx, "username")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, client.ErrLocalDataNotAvailable
@@ -46,14 +49,14 @@ func (a *authService) OfflineLogin(ctx context.Context, username string, passwor
 		return nil, client.ErrUnauthorized
 	}
 
-	savedSalt, err := a.getMetadataKey(ctx, "salt")
+	savedSalt, err := metadataRepo.Get(ctx, "salt")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, client.ErrLocalDataNotAvailable
 		}
 	}
 
-	savedVerifier, err := a.getMetadataKey(ctx, "verifier")
+	savedVerifier, err := metadataRepo.Get(ctx, "verifier")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, client.ErrLocalDataNotAvailable
@@ -100,19 +103,23 @@ func (a *authService) saveOfflineData(ctx context.Context,
 	salt []byte,
 	varifier []byte) error {
 
-	if err := a.metadataRepo.Set(ctx, "username", []byte(userName)); err != nil {
-		return err
-	}
+	metadataRepo := a.getMetadataRepo()
 
-	if err := a.metadataRepo.Set(ctx, "salt", salt); err != nil {
-		return err
-	}
+	return dbx.WithTx(ctx, a.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
+		if err := metadataRepo.Set(ctx, "username", []byte(userName)); err != nil {
+			return err
+		}
 
-	if err := a.metadataRepo.Set(ctx, "verifier", varifier); err != nil {
-		return err
-	}
+		if err := metadataRepo.Set(ctx, "salt", salt); err != nil {
+			return err
+		}
 
-	return nil
+		if err := metadataRepo.Set(ctx, "verifier", varifier); err != nil {
+			return err
+		}
+		return nil
+	})
+
 }
 
 func (a *authService) Register(ctx context.Context, username string, password []byte) error {

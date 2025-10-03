@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
@@ -37,7 +36,7 @@ func (a *App) show(ctx context.Context) {
 		log.Printf("Error: %s", err.Error())
 	}
 
-	fmt.Println(envelope.Title)
+	log.Printf(envelope.Title)
 
 	x, err := envelope.Unwrap()
 	if err != nil {

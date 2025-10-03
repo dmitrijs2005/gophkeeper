@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/auth"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/config"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/shared/tx"
 )
 
 type TokenPair struct {
@@ -54,7 +54,7 @@ func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*T
 
 	var tokenPair *TokenPair
 
-	err = tx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx tx.DBTX) error {
+	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
 		err = repo.Delete(ctx, refreshToken)
 		if err != nil {
 			return fmt.Errorf("error deleting refresh token: %v", err)
@@ -115,7 +115,7 @@ func (s *UserService) GetSalt(ctx context.Context, userName string) ([]byte, err
 	return user.Salt, nil
 }
 
-func (s *UserService) generateAccessToken(ctx context.Context, userID string) (string, error) {
+func (s *UserService) generateAccessToken(userID string) (string, error) {
 	token, err := auth.GenerateToken(userID, s.jwtSecret, s.accessTokenValidityDuration)
 	if err != nil {
 		return "", err
@@ -154,7 +154,7 @@ func (s *UserService) Login(ctx context.Context, userName string, verifierCandid
 }
 
 func (s *UserService) generateTokenPair(ctx context.Context, userID string) (*TokenPair, error) {
-	accessToken, err := s.generateAccessToken(ctx, userID)
+	accessToken, err := s.generateAccessToken(userID)
 	if err != nil {
 		return nil, common.ErrorInternal
 	}

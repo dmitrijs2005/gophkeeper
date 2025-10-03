@@ -36,7 +36,7 @@ func NewApp(c *config.Config) (*App, error) {
 
 	ctx := context.Background()
 
-	repositories, err := client.InitDatabase(ctx, "vault.db")
+	db, err := client.InitDatabase(ctx, "vault.db")
 	if err != nil {
 		log.Printf("error initializing database: %s", err.Error())
 		return nil, err
@@ -47,12 +47,12 @@ func NewApp(c *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	as := services.NewAuthService(apiClient, repositories.Metadata)
+	as := services.NewAuthService(apiClient, db)
 	if err != nil {
 		return nil, err
 	}
 
-	es := services.NewEntryService(apiClient, repositories.Entry)
+	es := services.NewEntryService(apiClient, db)
 	if err != nil {
 		return nil, err
 	}

@@ -17,14 +17,20 @@ func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
 	return &SQLiteRepository{db: db}
 }
 
-func (r *SQLiteRepository) Insert(ctx context.Context, entry *models.Entry) error {
+func (r *SQLiteRepository) CreateOrUpdate(ctx context.Context, e *models.Entry) error {
 
-	query := ` INSERT INTO entries (id, overview, nonce_overview, details, nonce_details)
-			values (?, ?, ?, ?, ?)
+	query := ` INSERT INTO entries (id, overview, nonce_overview, details, nonce_details, deleted)
+			values (?, ?, ?, ?, ?, ?)
+			ON CONFLICT(id) DO UPDATE SET overview = excluded.overview, 
+				nonce_overview = excluded.nonce_overview, 
+				details = excluded.details, 
+				nonce_details = excluded.nonce_details,
+				deleted = excluded.deleted
 	`
-	_, err := r.db.ExecContext(ctx, query, entry.Id, entry.Overview, entry.NonceOverview, entry.Details, entry.NonceDetails)
+	_, err := r.db.ExecContext(ctx, query, e.Id, e.Overview,
+		e.NonceOverview, e.Details, e.NonceDetails, e.Deleted)
 	if err != nil {
-		return fmt.Errorf("failed to insert entry: %w", err)
+		return fmt.Errorf("failed to upsert entry: %w", err)
 	}
 
 	return nil
