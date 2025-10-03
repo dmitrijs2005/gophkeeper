@@ -145,7 +145,7 @@ func (s *entryService) Sync(ctx context.Context) error {
 	} else {
 		currentVersion, err = strconv.ParseInt(sValue, 10, 64)
 		if err != nil {
-			return fmt.Errorf("parse current_version %q: %w", s, err)
+			return fmt.Errorf("parse current_version: %w", err)
 		}
 	}
 

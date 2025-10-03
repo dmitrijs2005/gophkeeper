@@ -36,7 +36,7 @@ func (a *App) show(ctx context.Context) {
 		log.Printf("Error: %s", err.Error())
 	}
 
-	log.Printf(envelope.Title)
+	log.Println(envelope.Title)
 
 	x, err := envelope.Unwrap()
 	if err != nil {

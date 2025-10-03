@@ -9,7 +9,7 @@ import (
 func (a *App) list(ctx context.Context) {
 	s, err := a.entryService.List(ctx, a.masterKey)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Println(err.Error())
 	}
 
 	for _, item := range s {
@@ -20,7 +20,7 @@ func (a *App) list(ctx context.Context) {
 func (a *App) sync(ctx context.Context) {
 	err := a.entryService.Sync(ctx)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Println(err.Error())
 	}
 
 }
