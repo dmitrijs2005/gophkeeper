@@ -33,5 +33,8 @@ type Config struct {
 func LoadConfig() *Config {
 	config := &Config{}
 	config.LoadDefaults()
+	parseJson(config)
+	parseFlags(config)
+
 	return config
 }

@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
+	"github.com/dmitrijs2005/gophkeeper/internal/buildinfo"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/cli"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/config"
 )
 
 func main() {
+
+	buildinfo.PrintBuildData(os.Stdout)
 
 	ctx := context.Background()
 	cfg := config.LoadConfig()
