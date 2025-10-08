@@ -11,4 +11,5 @@ type Entry struct {
 	Details       []byte
 	NonceDetails  []byte
 	UpdatedAr     time.Time
+	IsFile        bool
 }

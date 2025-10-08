@@ -72,10 +72,6 @@ func (r *SQLiteRepository) DeleteByID(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to delete entry: %w", err)
 	}
 
-	if err != nil {
-		return fmt.Errorf("failed to delete entry: %w", err)
-	}
-
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)

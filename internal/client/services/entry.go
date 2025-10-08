@@ -11,6 +11,7 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/entries"
+	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/files"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
@@ -20,7 +21,7 @@ import (
 type EntryService interface {
 	Sync(ctx context.Context) error
 	List(ctx context.Context, masterKey []byte) ([]models.ViewOverview, error)
-	Add(ctx context.Context, envelope models.Envelope, masterKey []byte) error
+	Add(ctx context.Context, envelope models.Envelope, file *models.File, masterKey []byte) error
 	DeleteByID(ctx context.Context, id string) error
 	Get(ctx context.Context, id string, masterKey []byte) (*models.Envelope, error)
 }
@@ -42,19 +43,25 @@ func (s *entryService) getEntryRepo() entries.Repository {
 	return entries.NewSQLiteRepository(s.db)
 }
 
-func (s *entryService) Add(ctx context.Context, envelope models.Envelope, masterKey []byte) error {
+func (s *entryService) getFileRepo() files.Repository {
+	return files.NewSQLiteRepository(s.db)
+}
+
+func (s *entryService) Add(ctx context.Context, envelope models.Envelope, file *models.File, masterKey []byte) error {
+
+	fmt.Println("masterKey", masterKey)
 
 	overview := envelope.Overview()
 	oCipherText, oNonce, err := utils.EncryptEntry(overview, masterKey)
 
 	if err != nil {
-		return fmt.Errorf("encryption error: %w", err)
+		return fmt.Errorf("encryption error1: %w", err)
 	}
 
 	cipherText, nonce, err := utils.EncryptEntry(envelope, masterKey)
 
 	if err != nil {
-		return fmt.Errorf("encryption error: %w", err)
+		return fmt.Errorf("encryption error2: %w", err)
 	}
 
 	e := &models.Entry{Id: uuid.NewString(),
@@ -65,9 +72,35 @@ func (s *entryService) Add(ctx context.Context, envelope models.Envelope, master
 	}
 
 	entryRepo := s.getEntryRepo()
-	err = entryRepo.CreateOrUpdate(ctx, e)
+
+	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
+
+		err := entryRepo.CreateOrUpdate(ctx, e)
+		if err != nil {
+			return fmt.Errorf("error tx: %w", err)
+		}
+
+		if file != nil {
+
+			fileRepo := s.getFileRepo()
+
+			file.ID = uuid.NewString()
+			file.EntryID = e.Id
+			file.Deleted = false
+			file.UploadStatus = "preupload"
+
+			err := fileRepo.CreateOrUpdate(ctx, file)
+			if err != nil {
+				return fmt.Errorf("error tx: %w", err)
+			}
+
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return fmt.Errorf("saving error: %w", err)
+		return fmt.Errorf("error tx: %w", err)
 	}
 
 	return nil

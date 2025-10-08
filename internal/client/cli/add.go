@@ -12,13 +12,13 @@ import (
 
 func (a *App) addEntry(ctx context.Context, addEntryDetails func(context.Context) (models.TypedEntry, error)) {
 
-	item, err := InputEnvelope(ctx, a.reader, addEntryDetails)
+	item, file, err := a.InputEnvelope(ctx, a.reader, addEntryDetails)
 	if err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
 
-	err = a.entryService.Add(ctx, item, a.masterKey)
+	err = a.entryService.Add(ctx, item, file, a.masterKey)
 	if err != nil {
 		log.Printf("error: %v", err)
 		return
@@ -104,50 +104,62 @@ func (a *App) addFileDetails(ctx context.Context) (models.TypedEntry, error) {
 		return nil, err
 	}
 
-	return &models.FilePreupload{Path: filePath}, nil
+	return &models.BinaryFile{Path: filePath}, nil
 
 }
 
-func InputEnvelope[T models.TypedEntry](
+func (a *App) InputEnvelope(
 	ctx context.Context,
 	r *bufio.Reader,
-	rest func(ctx context.Context) (T, error),
-) (models.Envelope, error) {
+	rest func(ctx context.Context) (models.TypedEntry, error),
+) (models.Envelope, *models.File, error) {
 
 	var zero models.Envelope
+
 	title, err := GetSimpleText(r, "Enter title")
 	if err != nil {
-		return zero, fmt.Errorf("get title: %w", err)
+		return zero, nil, fmt.Errorf("get title: %w", err)
 	}
 	title = strings.TrimSpace(title)
 	if title == "" {
-		return zero, fmt.Errorf("title is required")
+		return zero, nil, fmt.Errorf("title is required")
 	}
 	if err := ctx.Err(); err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 	payload, err := rest(ctx)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
+	}
+
+	var file *models.File
+
+	if m, ok := payload.(models.Materializer); ok {
+
+		file, err = m.Materialize(ctx)
+		if err != nil {
+			return zero, nil, fmt.Errorf("materialize: %w", err)
+		}
+
 	}
 
 	md, err := GetMetadata(r)
 	if err != nil {
 		log.Printf("error: %v", err)
-		return zero, err
+		return zero, nil, err
 	}
 
 	metadata, err := models.MetadataFromString(md)
 	if err != nil {
 		log.Printf("error: %v", err)
-		return zero, err
+		return zero, nil, err
 	}
 
 	x, err := models.Wrap(payload.GetType(), title, metadata, payload)
 	if err != nil {
 		log.Printf("error: %v", err)
-		return zero, err
+		return zero, nil, err
 	}
 
-	return x, nil
+	return x, file, nil
 }

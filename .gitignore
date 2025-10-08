@@ -8,6 +8,9 @@
 
 #configs
 configs
+preupload
+download
+
 
 #certificates
 *.pem

@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
@@ -79,7 +80,7 @@ func (a *authService) OnlineLogin(ctx context.Context, userName string, password
 
 	salt, err := a.client.GetSalt(ctx, userName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get salt error: %w", err)
 	}
 
 	masterKeyCandidate := utils.DeriveMasterKey(password, salt)
@@ -88,11 +89,11 @@ func (a *authService) OnlineLogin(ctx context.Context, userName string, password
 	err = a.client.Login(ctx, userName, verifierCandidate)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("login error: %w", err)
 	}
 
 	if err := a.saveOfflineData(ctx, userName, salt, verifierCandidate); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("offline data saving error: %w", err)
 	}
 
 	return masterKeyCandidate, nil

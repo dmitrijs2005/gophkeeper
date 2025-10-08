@@ -2,20 +2,27 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/dmitrijs2005/gophkeeper/internal/cryptox"
+	"github.com/dmitrijs2005/gophkeeper/internal/filex"
+	"github.com/google/uuid"
 )
 
 // EntryType classifies an entry kind.
 type EntryType string
 
 const (
-	EntryTypeNote          EntryType = "note"
-	EntryTypeFile          EntryType = "file"
-	EntryTypeLogin         EntryType = "login"
-	EntryTypeCreditCard    EntryType = "credit_card"
-	EntryTypeFilePreupload EntryType = "file_preupload"
+	EntryTypeNote       EntryType = "note"
+	EntryTypeBinaryFile EntryType = "binaryfile"
+	EntryTypeLogin      EntryType = "login"
+	EntryTypeCreditCard EntryType = "credit_card"
 )
 
 var ErrIncorrectMetadata = errors.New("metadata item must be name=value")
@@ -69,8 +76,8 @@ func (e Envelope) Unwrap() (any, error) {
 	case EntryTypeCreditCard:
 		var v CreditCard
 		return v, json.Unmarshal(e.Details, &v)
-	case EntryTypeFile:
-		var v File
+	case EntryTypeBinaryFile:
+		var v BinaryFile
 		return v, json.Unmarshal(e.Details, &v)
 	default:
 		return nil, json.Unmarshal(e.Details, &map[string]any{})
@@ -112,17 +119,42 @@ type CreditCard struct {
 func (x CreditCard) GetType() EntryType { return EntryTypeCreditCard }
 
 // File references an encrypted file in external storage.
-type File struct {
-	StorageKey string `json:"storage_key"`
-	FileKey    []byte `json:"file_key"`
-	Nonce      []byte `json:"nonce"`
-}
-
-func (x File) GetType() EntryType { return EntryTypeFile }
-
-// structure for offline file adding
-type FilePreupload struct {
+type BinaryFile struct {
 	Path string `json:"path"`
 }
 
-func (x FilePreupload) GetType() EntryType { return EntryTypeFilePreupload }
+func (f BinaryFile) GetType() EntryType { return EntryTypeBinaryFile }
+
+type Materializer interface {
+	Materialize(ctx context.Context) (*File, error)
+}
+
+func (f BinaryFile) Materialize(ctx context.Context) (*File, error) {
+
+	dir, err := filex.EnsureSubdDir("preupload")
+	if err != nil {
+		return nil, fmt.Errorf("error creating dir: %w", err)
+	}
+
+	ef, err := cryptox.EncryptFile(f.Path)
+	if err != nil {
+		return nil, fmt.Errorf("error encrypting file: %w", err)
+	}
+
+	fn := fmt.Sprintf("%v", uuid.New())
+
+	localPath := filepath.Join(dir, fn)
+
+	file, err := os.Create(localPath)
+	if err != nil {
+		return nil, fmt.Errorf("error creating file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(ef.Cyphertext)
+	if err != nil {
+		return nil, fmt.Errorf("error writing temporary file: %w", err)
+	}
+
+	return &File{EncryptedFileKey: ef.Key, Nonce: ef.Nonce, LocalPath: localPath}, nil
+}

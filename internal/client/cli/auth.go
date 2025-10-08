@@ -73,6 +73,8 @@ func (a *App) Login(ctx context.Context) {
 		log.Printf("Login successfull")
 	}
 
+	fmt.Println("mk1", masterKey)
+
 	a.masterKey = masterKey
 	a.setMode(mode)
 
