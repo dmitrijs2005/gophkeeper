@@ -49,11 +49,16 @@ func (s *GRPCClient) accessTokenInterceptor(
 	err := invoker(ctx, method, req, reply, cc, opts...)
 
 	if err != nil {
-		if status.Code(err) != codes.Unauthenticated {
+
+		st, ok := status.FromError(err)
+		if !ok {
 			return err
 		}
 
-		if err.Error() != common.ErrTokenExpired.Error() {
+		if st.Code() != codes.Unauthenticated {
+			return err
+		}
+		if st.Message() != common.ErrTokenExpired.Error() {
 			return err
 		}
 
