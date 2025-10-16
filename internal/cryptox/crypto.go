@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"os"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
@@ -163,11 +164,43 @@ func EncryptFile(path string) (*EncryptedFile, error) {
 		return nil, err
 	}
 
-	// nonce
 	nonce := common.GenerateRandByteArray(aesgcm.NonceSize())
 
-	// шифруем
 	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
 
 	return &EncryptedFile{Cyphertext: ciphertext, Key: key, Nonce: nonce}, nil
+}
+
+func DecryptFile(ef *EncryptedFile) ([]byte, error) {
+	if ef == nil {
+		return nil, errors.New("nil EncryptedFile")
+	}
+	if len(ef.Key) != 32 {
+		return nil, errors.New("invalid key length: expected 32 bytes")
+	}
+	block, err := aes.NewCipher(ef.Key)
+	if err != nil {
+		return nil, err
+	}
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	if len(ef.Nonce) != aesgcm.NonceSize() {
+		return nil, errors.New("invalid nonce length")
+	}
+
+	plaintext, err := aesgcm.Open(nil, ef.Nonce, ef.Cyphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
+}
+
+func DecryptFileTo(outPath string, ef *EncryptedFile) error {
+	pt, err := DecryptFile(ef)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(outPath, pt, 0o660)
 }

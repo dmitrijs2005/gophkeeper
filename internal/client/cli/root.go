@@ -51,7 +51,7 @@ func (a *App) Root(ctx context.Context) {
 		switch cmd {
 		case "help":
 			if a.isLoggedIn() {
-				fmt.Println("Available commands: (l)ist, addnote, addlogin, logout, exit, (d)elete")
+				fmt.Println("Available commands: (l)ist, addnote, addlogin, logout, exit, show")
 			} else {
 				fmt.Println("Available commands: register, login")
 			}

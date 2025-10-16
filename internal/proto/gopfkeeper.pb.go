@@ -921,6 +921,94 @@ func (*MarkUploadedResponse) Descriptor() ([]byte, []int) {
 	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{16}
 }
 
+type GetPresignedGetUrlRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EntryId       string                 `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPresignedGetUrlRequest) Reset() {
+	*x = GetPresignedGetUrlRequest{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPresignedGetUrlRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPresignedGetUrlRequest) ProtoMessage() {}
+
+func (x *GetPresignedGetUrlRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPresignedGetUrlRequest.ProtoReflect.Descriptor instead.
+func (*GetPresignedGetUrlRequest) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetPresignedGetUrlRequest) GetEntryId() string {
+	if x != nil {
+		return x.EntryId
+	}
+	return ""
+}
+
+type GetPresignedGetUrlResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPresignedGetUrlResponse) Reset() {
+	*x = GetPresignedGetUrlResponse{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPresignedGetUrlResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPresignedGetUrlResponse) ProtoMessage() {}
+
+func (x *GetPresignedGetUrlResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPresignedGetUrlResponse.ProtoReflect.Descriptor instead.
+func (*GetPresignedGetUrlResponse) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetPresignedGetUrlResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
 var File_internal_proto_gopfkeeper_proto protoreflect.FileDescriptor
 
 const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
@@ -981,7 +1069,11 @@ const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"0\n" +
 	"\x13MarkUploadedRequest\x12\x19\n" +
 	"\bentry_id\x18\x01 \x01(\tR\aentryId\"\x16\n" +
-	"\x14MarkUploadedResponse2\xf4\x04\n" +
+	"\x14MarkUploadedResponse\"6\n" +
+	"\x19GetPresignedGetUrlRequest\x12\x19\n" +
+	"\bentry_id\x18\x01 \x01(\tR\aentryId\".\n" +
+	"\x1aGetPresignedGetUrlResponse\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url2\xe9\x05\n" +
 	"\x11GophKeeperService\x12a\n" +
 	"\fRegisterUser\x12'.gophkeeper.service.RegisterUserRequest\x1a(.gophkeeper.service.RegisterUserResponse\x12R\n" +
 	"\aGetSalt\x12\".gophkeeper.service.GetSaltRequest\x1a#.gophkeeper.service.GetSaltResponse\x12L\n" +
@@ -989,7 +1081,8 @@ const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
 	"\x04Ping\x12\x1f.gophkeeper.service.PingRequest\x1a .gophkeeper.service.PingResponse\x12I\n" +
 	"\x04Sync\x12\x1f.gophkeeper.service.SyncRequest\x1a .gophkeeper.service.SyncResponse\x12a\n" +
 	"\fRefreshToken\x12'.gophkeeper.service.RefreshTokenRequest\x1a(.gophkeeper.service.RefreshTokenResponse\x12a\n" +
-	"\fMarkUploaded\x12'.gophkeeper.service.MarkUploadedRequest\x1a(.gophkeeper.service.MarkUploadedResponseB8Z6github.com/dmitrijs2005/gophkeeper/internal/grpc/protob\x06proto3"
+	"\fMarkUploaded\x12'.gophkeeper.service.MarkUploadedRequest\x1a(.gophkeeper.service.MarkUploadedResponse\x12s\n" +
+	"\x12GetPresignedGetUrl\x12-.gophkeeper.service.GetPresignedGetUrlRequest\x1a..gophkeeper.service.GetPresignedGetUrlResponseB8Z6github.com/dmitrijs2005/gophkeeper/internal/grpc/protob\x06proto3"
 
 var (
 	file_internal_proto_gopfkeeper_proto_rawDescOnce sync.Once
@@ -1003,25 +1096,27 @@ func file_internal_proto_gopfkeeper_proto_rawDescGZIP() []byte {
 	return file_internal_proto_gopfkeeper_proto_rawDescData
 }
 
-var file_internal_proto_gopfkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_internal_proto_gopfkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_internal_proto_gopfkeeper_proto_goTypes = []any{
-	(*RegisterUserRequest)(nil),  // 0: gophkeeper.service.RegisterUserRequest
-	(*RegisterUserResponse)(nil), // 1: gophkeeper.service.RegisterUserResponse
-	(*GetSaltRequest)(nil),       // 2: gophkeeper.service.GetSaltRequest
-	(*GetSaltResponse)(nil),      // 3: gophkeeper.service.GetSaltResponse
-	(*LoginRequest)(nil),         // 4: gophkeeper.service.LoginRequest
-	(*LoginResponse)(nil),        // 5: gophkeeper.service.LoginResponse
-	(*PingRequest)(nil),          // 6: gophkeeper.service.PingRequest
-	(*PingResponse)(nil),         // 7: gophkeeper.service.PingResponse
-	(*Entry)(nil),                // 8: gophkeeper.service.Entry
-	(*File)(nil),                 // 9: gophkeeper.service.File
-	(*UploadTask)(nil),           // 10: gophkeeper.service.UploadTask
-	(*SyncRequest)(nil),          // 11: gophkeeper.service.SyncRequest
-	(*SyncResponse)(nil),         // 12: gophkeeper.service.SyncResponse
-	(*RefreshTokenRequest)(nil),  // 13: gophkeeper.service.RefreshTokenRequest
-	(*RefreshTokenResponse)(nil), // 14: gophkeeper.service.RefreshTokenResponse
-	(*MarkUploadedRequest)(nil),  // 15: gophkeeper.service.MarkUploadedRequest
-	(*MarkUploadedResponse)(nil), // 16: gophkeeper.service.MarkUploadedResponse
+	(*RegisterUserRequest)(nil),        // 0: gophkeeper.service.RegisterUserRequest
+	(*RegisterUserResponse)(nil),       // 1: gophkeeper.service.RegisterUserResponse
+	(*GetSaltRequest)(nil),             // 2: gophkeeper.service.GetSaltRequest
+	(*GetSaltResponse)(nil),            // 3: gophkeeper.service.GetSaltResponse
+	(*LoginRequest)(nil),               // 4: gophkeeper.service.LoginRequest
+	(*LoginResponse)(nil),              // 5: gophkeeper.service.LoginResponse
+	(*PingRequest)(nil),                // 6: gophkeeper.service.PingRequest
+	(*PingResponse)(nil),               // 7: gophkeeper.service.PingResponse
+	(*Entry)(nil),                      // 8: gophkeeper.service.Entry
+	(*File)(nil),                       // 9: gophkeeper.service.File
+	(*UploadTask)(nil),                 // 10: gophkeeper.service.UploadTask
+	(*SyncRequest)(nil),                // 11: gophkeeper.service.SyncRequest
+	(*SyncResponse)(nil),               // 12: gophkeeper.service.SyncResponse
+	(*RefreshTokenRequest)(nil),        // 13: gophkeeper.service.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil),       // 14: gophkeeper.service.RefreshTokenResponse
+	(*MarkUploadedRequest)(nil),        // 15: gophkeeper.service.MarkUploadedRequest
+	(*MarkUploadedResponse)(nil),       // 16: gophkeeper.service.MarkUploadedResponse
+	(*GetPresignedGetUrlRequest)(nil),  // 17: gophkeeper.service.GetPresignedGetUrlRequest
+	(*GetPresignedGetUrlResponse)(nil), // 18: gophkeeper.service.GetPresignedGetUrlResponse
 }
 var file_internal_proto_gopfkeeper_proto_depIdxs = []int32{
 	8,  // 0: gophkeeper.service.SyncRequest.entries:type_name -> gophkeeper.service.Entry
@@ -1037,15 +1132,17 @@ var file_internal_proto_gopfkeeper_proto_depIdxs = []int32{
 	11, // 10: gophkeeper.service.GophKeeperService.Sync:input_type -> gophkeeper.service.SyncRequest
 	13, // 11: gophkeeper.service.GophKeeperService.RefreshToken:input_type -> gophkeeper.service.RefreshTokenRequest
 	15, // 12: gophkeeper.service.GophKeeperService.MarkUploaded:input_type -> gophkeeper.service.MarkUploadedRequest
-	1,  // 13: gophkeeper.service.GophKeeperService.RegisterUser:output_type -> gophkeeper.service.RegisterUserResponse
-	3,  // 14: gophkeeper.service.GophKeeperService.GetSalt:output_type -> gophkeeper.service.GetSaltResponse
-	5,  // 15: gophkeeper.service.GophKeeperService.Login:output_type -> gophkeeper.service.LoginResponse
-	7,  // 16: gophkeeper.service.GophKeeperService.Ping:output_type -> gophkeeper.service.PingResponse
-	12, // 17: gophkeeper.service.GophKeeperService.Sync:output_type -> gophkeeper.service.SyncResponse
-	14, // 18: gophkeeper.service.GophKeeperService.RefreshToken:output_type -> gophkeeper.service.RefreshTokenResponse
-	16, // 19: gophkeeper.service.GophKeeperService.MarkUploaded:output_type -> gophkeeper.service.MarkUploadedResponse
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
+	17, // 13: gophkeeper.service.GophKeeperService.GetPresignedGetUrl:input_type -> gophkeeper.service.GetPresignedGetUrlRequest
+	1,  // 14: gophkeeper.service.GophKeeperService.RegisterUser:output_type -> gophkeeper.service.RegisterUserResponse
+	3,  // 15: gophkeeper.service.GophKeeperService.GetSalt:output_type -> gophkeeper.service.GetSaltResponse
+	5,  // 16: gophkeeper.service.GophKeeperService.Login:output_type -> gophkeeper.service.LoginResponse
+	7,  // 17: gophkeeper.service.GophKeeperService.Ping:output_type -> gophkeeper.service.PingResponse
+	12, // 18: gophkeeper.service.GophKeeperService.Sync:output_type -> gophkeeper.service.SyncResponse
+	14, // 19: gophkeeper.service.GophKeeperService.RefreshToken:output_type -> gophkeeper.service.RefreshTokenResponse
+	16, // 20: gophkeeper.service.GophKeeperService.MarkUploaded:output_type -> gophkeeper.service.MarkUploadedResponse
+	18, // 21: gophkeeper.service.GophKeeperService.GetPresignedGetUrl:output_type -> gophkeeper.service.GetPresignedGetUrlResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -1062,7 +1159,7 @@ func file_internal_proto_gopfkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_gopfkeeper_proto_rawDesc), len(file_internal_proto_gopfkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

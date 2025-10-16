@@ -14,4 +14,5 @@ type Client interface {
 	Ping(ctx context.Context) error
 	Sync(ctx context.Context, entries []*models.Entry, files []*models.File, maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error)
 	MarkUploaded(ctx context.Context, entryID string) error
+	GetPresignedGetURL(ctx context.Context, entryID string) (string, error)
 }

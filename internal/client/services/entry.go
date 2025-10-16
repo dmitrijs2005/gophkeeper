@@ -28,6 +28,8 @@ type EntryService interface {
 	Add(ctx context.Context, envelope models.Envelope, file *models.File, masterKey []byte) error
 	DeleteByID(ctx context.Context, id string) error
 	Get(ctx context.Context, id string, masterKey []byte) (*models.Envelope, error)
+	GetPresignedGetUrl(ctx context.Context, id string) (string, error)
+	GetFile(ctx context.Context, id string) (*models.File, error)
 }
 
 type entryService struct {
@@ -299,4 +301,20 @@ func (s *entryService) Sync(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *entryService) GetPresignedGetUrl(ctx context.Context, id string) (string, error) {
+
+	url, err := s.client.GetPresignedGetURL(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("error get presigned url: %w", err)
+	}
+
+	return url, err
+
+}
+
+func (s *entryService) GetFile(ctx context.Context, id string) (*models.File, error) {
+	fileRepo := s.getFileRepo()
+	return fileRepo.GetByEntryID(ctx, id)
 }

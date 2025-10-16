@@ -91,6 +91,14 @@ message MarkUploadedRequest {
 message MarkUploadedResponse {
 }
 
+message GetPresignedGetUrlRequest{
+  string entry_id = 1;
+}
+
+message GetPresignedGetUrlResponse{
+  string url = 1;
+}
+
 service GophKeeperService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
@@ -99,4 +107,5 @@ service GophKeeperService {
   rpc Sync(SyncRequest) returns (SyncResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc MarkUploaded(MarkUploadedRequest) returns (MarkUploadedResponse);
+  rpc GetPresignedGetUrl(GetPresignedGetUrlRequest) returns (GetPresignedGetUrlResponse);
 }

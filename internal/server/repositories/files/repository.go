@@ -10,4 +10,5 @@ type Repository interface {
 	CreateOrUpdate(ctx context.Context, file *models.File) error
 	SelectUpdated(ctx context.Context, userID string, minVersion int64) ([]*models.File, error)
 	MarkUploaded(ctx context.Context, id string) error
+	GetByEntryID(ctx context.Context, id string) (*models.File, error)
 }

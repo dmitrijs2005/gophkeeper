@@ -78,36 +78,26 @@ func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, 
 	return key, req.URL, nil
 }
 
-// func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) {
+func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) {
 
-// 	presignClient, err := s.getPresignClient()
-// 	if err != nil {
-// 		return "", err
-// 	}
+	presignClient, err := s.getPresignClient()
+	if err != nil {
+		return "", err
+	}
 
-// 	bucket := s.config.S3Bucket
+	bucket := s.config.S3Bucket
 
-// 	// Presigned GET
-// 	reg, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-// 		Bucket: &bucket,
-// 		Key:    &key,
-// 	}, s3.WithPresignExpires(15*time.Minute))
-// 	if err != nil {
-// 		return "", err
-// 	}
+	// Presigned GET
+	reg, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	}, s3.WithPresignExpires(15*time.Minute))
+	if err != nil {
+		return "", err
+	}
 
-// 	return reg.URL, nil
-// }
-
-// func RemoveByIDOnce(xs []models.Entry, id string) []models.Entry {
-// 	for i := range xs {
-// 		if xs[i].ID == id {
-// 			// порядок сохраняется
-// 			return append(xs[:i], xs[i+1:]...)
-// 		}
-// 	}
-// 	return xs
-// }
+	return reg.URL, nil
+}
 
 func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries []*models.Entry,
 	pendingFiles []*models.File, maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error) {
@@ -202,4 +192,18 @@ func (s *EntryService) MarkUploaded(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+func (s *EntryService) GetPresignedGetURL(ctx context.Context, id string) (string, error) {
+
+	fileRepo := s.repomanager.Files(s.db)
+
+	f, err := fileRepo.GetByEntryID(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("error getting file: %v", err)
+	}
+
+	url, err := s.GetPresignedGetUrl(ctx, f.StorageKey)
+
+	return url, err
 }

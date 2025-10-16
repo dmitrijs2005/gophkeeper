@@ -19,13 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GophKeeperService_RegisterUser_FullMethodName = "/gophkeeper.service.GophKeeperService/RegisterUser"
-	GophKeeperService_GetSalt_FullMethodName      = "/gophkeeper.service.GophKeeperService/GetSalt"
-	GophKeeperService_Login_FullMethodName        = "/gophkeeper.service.GophKeeperService/Login"
-	GophKeeperService_Ping_FullMethodName         = "/gophkeeper.service.GophKeeperService/Ping"
-	GophKeeperService_Sync_FullMethodName         = "/gophkeeper.service.GophKeeperService/Sync"
-	GophKeeperService_RefreshToken_FullMethodName = "/gophkeeper.service.GophKeeperService/RefreshToken"
-	GophKeeperService_MarkUploaded_FullMethodName = "/gophkeeper.service.GophKeeperService/MarkUploaded"
+	GophKeeperService_RegisterUser_FullMethodName       = "/gophkeeper.service.GophKeeperService/RegisterUser"
+	GophKeeperService_GetSalt_FullMethodName            = "/gophkeeper.service.GophKeeperService/GetSalt"
+	GophKeeperService_Login_FullMethodName              = "/gophkeeper.service.GophKeeperService/Login"
+	GophKeeperService_Ping_FullMethodName               = "/gophkeeper.service.GophKeeperService/Ping"
+	GophKeeperService_Sync_FullMethodName               = "/gophkeeper.service.GophKeeperService/Sync"
+	GophKeeperService_RefreshToken_FullMethodName       = "/gophkeeper.service.GophKeeperService/RefreshToken"
+	GophKeeperService_MarkUploaded_FullMethodName       = "/gophkeeper.service.GophKeeperService/MarkUploaded"
+	GophKeeperService_GetPresignedGetUrl_FullMethodName = "/gophkeeper.service.GophKeeperService/GetPresignedGetUrl"
 )
 
 // GophKeeperServiceClient is the client API for GophKeeperService service.
@@ -39,6 +40,7 @@ type GophKeeperServiceClient interface {
 	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 	MarkUploaded(ctx context.Context, in *MarkUploadedRequest, opts ...grpc.CallOption) (*MarkUploadedResponse, error)
+	GetPresignedGetUrl(ctx context.Context, in *GetPresignedGetUrlRequest, opts ...grpc.CallOption) (*GetPresignedGetUrlResponse, error)
 }
 
 type gophKeeperServiceClient struct {
@@ -119,6 +121,16 @@ func (c *gophKeeperServiceClient) MarkUploaded(ctx context.Context, in *MarkUplo
 	return out, nil
 }
 
+func (c *gophKeeperServiceClient) GetPresignedGetUrl(ctx context.Context, in *GetPresignedGetUrlRequest, opts ...grpc.CallOption) (*GetPresignedGetUrlResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPresignedGetUrlResponse)
+	err := c.cc.Invoke(ctx, GophKeeperService_GetPresignedGetUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophKeeperServiceServer is the server API for GophKeeperService service.
 // All implementations must embed UnimplementedGophKeeperServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type GophKeeperServiceServer interface {
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	MarkUploaded(context.Context, *MarkUploadedRequest) (*MarkUploadedResponse, error)
+	GetPresignedGetUrl(context.Context, *GetPresignedGetUrlRequest) (*GetPresignedGetUrlResponse, error)
 	mustEmbedUnimplementedGophKeeperServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedGophKeeperServiceServer) RefreshToken(context.Context, *Refre
 }
 func (UnimplementedGophKeeperServiceServer) MarkUploaded(context.Context, *MarkUploadedRequest) (*MarkUploadedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MarkUploaded not implemented")
+}
+func (UnimplementedGophKeeperServiceServer) GetPresignedGetUrl(context.Context, *GetPresignedGetUrlRequest) (*GetPresignedGetUrlResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPresignedGetUrl not implemented")
 }
 func (UnimplementedGophKeeperServiceServer) mustEmbedUnimplementedGophKeeperServiceServer() {}
 func (UnimplementedGophKeeperServiceServer) testEmbeddedByValue()                           {}
@@ -308,6 +324,24 @@ func _GophKeeperService_MarkUploaded_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GophKeeperService_GetPresignedGetUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPresignedGetUrlRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServiceServer).GetPresignedGetUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeperService_GetPresignedGetUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServiceServer).GetPresignedGetUrl(ctx, req.(*GetPresignedGetUrlRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GophKeeperService_ServiceDesc is the grpc.ServiceDesc for GophKeeperService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var GophKeeperService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MarkUploaded",
 			Handler:    _GophKeeperService_MarkUploaded_Handler,
+		},
+		{
+			MethodName: "GetPresignedGetUrl",
+			Handler:    _GophKeeperService_GetPresignedGetUrl_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

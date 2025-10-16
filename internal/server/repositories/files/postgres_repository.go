@@ -102,3 +102,17 @@ func (r *PostgresRepository) MarkUploaded(ctx context.Context, id string) error 
 	return nil
 
 }
+
+func (r *PostgresRepository) GetByEntryID(ctx context.Context, id string) (*models.File, error) {
+	query := ` SELECT entry_id, user_id, storage_key from files 
+		WHERE entry_id=$1
+		`
+
+	result := &models.File{}
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&result.EntryID, &result.UserID, &result.StorageKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select files: %w", err)
+	}
+
+	return result, nil
+}

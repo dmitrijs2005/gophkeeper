@@ -178,3 +178,14 @@ func (s *GRPCServer) MarkUploaded(ctx context.Context, req *pb.MarkUploadedReque
 	}
 	return &pb.MarkUploadedResponse{}, nil
 }
+
+func (s *GRPCServer) GetPresignedGetUrl(ctx context.Context, req *pb.GetPresignedGetUrlRequest) (*pb.GetPresignedGetUrlResponse, error) {
+
+	entryID := req.EntryId
+
+	url, err := s.entries.GetPresignedGetURL(ctx, entryID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	return &pb.GetPresignedGetUrlResponse{Url: url}, nil
+}

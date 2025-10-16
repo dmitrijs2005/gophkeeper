@@ -304,3 +304,13 @@ func (s *GRPCClient) MarkUploaded(ctx context.Context, entryID string) error {
 	}
 	return nil
 }
+
+func (s *GRPCClient) GetPresignedGetURL(ctx context.Context, entryID string) (string, error) {
+	req := &pb.GetPresignedGetUrlRequest{EntryId: entryID}
+	res, err := s.client.GetPresignedGetUrl(ctx, req)
+	if err != nil {
+		return "", s.mapError(err)
+	}
+	return res.Url, nil
+
+}
