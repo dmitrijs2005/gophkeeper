@@ -20,16 +20,4 @@ var (
 	// token specific errors
 	ErrTokenExpired        = errors.New("token expired")
 	ErrRefreshTokenExpired = errors.New("refresh token expired")
-
-	// ErrorAlreadyExists = errors.New("already exists")
-	// ErrorValidation    = errors.New("validation error")
-
-	// ErrorInvalidAuthheaderFormat = errors.New("invalid auth header format")
-
-	// ErrorNoUserID              = errors.New("no user id")
-	// ErrorLoginAlreadyExists    = errors.New("login already exists")
-	// ErrorInvalidLoginFormat    = errors.New("invalid login format")
-	// ErrorInvalidPasswordFormat = errors.New("invalid password format")
-	// ErrorInvalidLoginPassword  = errors.New("invalid login/password")
-
 )

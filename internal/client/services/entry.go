@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
+	"sync"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
@@ -14,8 +16,11 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/files"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
+	"github.com/dmitrijs2005/gophkeeper/internal/cryptox"
 	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
+	"github.com/dmitrijs2005/gophkeeper/internal/netx"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 type EntryService interface {
@@ -49,16 +54,14 @@ func (s *entryService) getFileRepo() files.Repository {
 
 func (s *entryService) Add(ctx context.Context, envelope models.Envelope, file *models.File, masterKey []byte) error {
 
-	fmt.Println("masterKey", masterKey)
-
 	overview := envelope.Overview()
-	oCipherText, oNonce, err := utils.EncryptEntry(overview, masterKey)
+	oCipherText, oNonce, err := cryptox.EncryptEntry(overview, masterKey)
 
 	if err != nil {
 		return fmt.Errorf("encryption error1: %w", err)
 	}
 
-	cipherText, nonce, err := utils.EncryptEntry(envelope, masterKey)
+	cipherText, nonce, err := cryptox.EncryptEntry(envelope, masterKey)
 
 	if err != nil {
 		return fmt.Errorf("encryption error2: %w", err)
@@ -84,10 +87,9 @@ func (s *entryService) Add(ctx context.Context, envelope models.Envelope, file *
 
 			fileRepo := s.getFileRepo()
 
-			file.ID = uuid.NewString()
 			file.EntryID = e.Id
 			file.Deleted = false
-			file.UploadStatus = "preupload"
+			file.UploadStatus = "pending"
 
 			err := fileRepo.CreateOrUpdate(ctx, file)
 			if err != nil {
@@ -161,10 +163,70 @@ func (s *entryService) Get(ctx context.Context, id string, masterKey []byte) (*m
 	return envelope, err
 }
 
+func (s *entryService) uploadPendingFiles(ctx context.Context, uploadTasks []*models.FileUploadTask) error {
+
+	fileRepo := s.getFileRepo()
+	grp, ctx := errgroup.WithContext(ctx)
+
+	sem := make(chan struct{}, 4)
+	var wg sync.WaitGroup
+
+	for _, task := range uploadTasks {
+		task := task
+		wg.Add(1)
+		sem <- struct{}{}
+
+		grp.Go(func() error {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			file, err := fileRepo.GetByEntryID(ctx, task.EntryID)
+			if err != nil {
+				return err
+			}
+
+			if file.LocalPath == "" {
+				return err
+			}
+
+			data, err := os.ReadFile(file.LocalPath)
+			if err != nil {
+				return err
+			}
+
+			err = netx.UploadToS3PresignedURL(task.URL, data)
+			if err != nil {
+				return err
+			}
+
+			if err := fileRepo.MarkUploaded(ctx, task.EntryID); err != nil {
+				return err
+			}
+
+			if err := s.client.MarkUploaded(ctx, task.EntryID); err != nil {
+				return err
+			}
+
+			_ = os.Remove(file.LocalPath)
+
+			return nil
+
+		})
+	}
+
+	if err := grp.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (s *entryService) Sync(ctx context.Context) error {
 
 	metadataRepo := s.getMetadataRepo()
 	entryRepo := s.getEntryRepo()
+	fileRepo := s.getFileRepo()
 
 	value, err := metadataRepo.Get(ctx, "current_version")
 	if err != nil {
@@ -187,9 +249,19 @@ func (s *entryService) Sync(ctx context.Context) error {
 		return fmt.Errorf("error retrieving entries: %w", err)
 	}
 
-	processed, new, max_version, err := s.client.Sync(ctx, entries, currentVersion)
+	files, err := fileRepo.GetAllPendingUpload(ctx)
+	if err != nil {
+		return fmt.Errorf("error retrieving files: %w", err)
+	}
+
+	processedEntries, newEntries, newFiles, uploadTasks, max_version, err := s.client.Sync(ctx, entries, files, currentVersion)
 	if err != nil {
 		return fmt.Errorf("error client sync: %w", err)
+	}
+
+	err = s.uploadPendingFiles(ctx, uploadTasks)
+	if err != nil {
+		return fmt.Errorf("error uploading files: %w", err)
 	}
 
 	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
@@ -199,15 +271,22 @@ func (s *entryService) Sync(ctx context.Context) error {
 			return err
 		}
 
-		for _, e := range processed {
+		for _, e := range processedEntries {
 			err := entryRepo.CreateOrUpdate(ctx, e)
 			if err != nil {
 				return err
 			}
 		}
 
-		for _, e := range new {
+		for _, e := range newEntries {
 			err := entryRepo.CreateOrUpdate(ctx, e)
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, e := range newFiles {
+			err := fileRepo.CreateOrUpdate(ctx, e)
 			if err != nil {
 				return err
 			}

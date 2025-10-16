@@ -406,6 +406,7 @@ type Entry struct {
 	Details       []byte                 `protobuf:"bytes,5,opt,name=details,proto3" json:"details,omitempty"`
 	NonceDetails  []byte                 `protobuf:"bytes,6,opt,name=nonce_details,json=nonceDetails,proto3" json:"nonce_details,omitempty"`
 	Deleted       bool                   `protobuf:"varint,7,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	IsFile        bool                   `protobuf:"varint,8,opt,name=is_file,json=isFile,proto3" json:"is_file,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -489,17 +490,137 @@ func (x *Entry) GetDeleted() bool {
 	return false
 }
 
+func (x *Entry) GetIsFile() bool {
+	if x != nil {
+		return x.IsFile
+	}
+	return false
+}
+
+type File struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EntryId       string                 `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
+	FileKey       []byte                 `protobuf:"bytes,2,opt,name=file_key,json=fileKey,proto3" json:"file_key,omitempty"`
+	Nonce         []byte                 `protobuf:"bytes,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *File) Reset() {
+	*x = File{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *File) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*File) ProtoMessage() {}
+
+func (x *File) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use File.ProtoReflect.Descriptor instead.
+func (*File) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *File) GetEntryId() string {
+	if x != nil {
+		return x.EntryId
+	}
+	return ""
+}
+
+func (x *File) GetFileKey() []byte {
+	if x != nil {
+		return x.FileKey
+	}
+	return nil
+}
+
+func (x *File) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+type UploadTask struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EntryId       string                 `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
+	Url           string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadTask) Reset() {
+	*x = UploadTask{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadTask) ProtoMessage() {}
+
+func (x *UploadTask) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadTask.ProtoReflect.Descriptor instead.
+func (*UploadTask) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UploadTask) GetEntryId() string {
+	if x != nil {
+		return x.EntryId
+	}
+	return ""
+}
+
+func (x *UploadTask) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
 type SyncRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MaxVersion    int64                  `protobuf:"varint,1,opt,name=max_version,json=maxVersion,proto3" json:"max_version,omitempty"`
 	Entries       []*Entry               `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	Files         []*File                `protobuf:"bytes,3,rep,name=files,proto3" json:"files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SyncRequest) Reset() {
 	*x = SyncRequest{}
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[9]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -511,7 +632,7 @@ func (x *SyncRequest) String() string {
 func (*SyncRequest) ProtoMessage() {}
 
 func (x *SyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[9]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -524,7 +645,7 @@ func (x *SyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncRequest.ProtoReflect.Descriptor instead.
 func (*SyncRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{9}
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SyncRequest) GetMaxVersion() int64 {
@@ -541,18 +662,27 @@ func (x *SyncRequest) GetEntries() []*Entry {
 	return nil
 }
 
+func (x *SyncRequest) GetFiles() []*File {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
 type SyncResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	GlobalMaxVersion int64                  `protobuf:"varint,1,opt,name=global_max_version,json=globalMaxVersion,proto3" json:"global_max_version,omitempty"`
 	ProcessedEntries []*Entry               `protobuf:"bytes,2,rep,name=processed_entries,json=processedEntries,proto3" json:"processed_entries,omitempty"`
 	NewEntries       []*Entry               `protobuf:"bytes,3,rep,name=new_entries,json=newEntries,proto3" json:"new_entries,omitempty"`
+	NewFiles         []*File                `protobuf:"bytes,4,rep,name=new_files,json=newFiles,proto3" json:"new_files,omitempty"`
+	UploadTasks      []*UploadTask          `protobuf:"bytes,5,rep,name=upload_tasks,json=uploadTasks,proto3" json:"upload_tasks,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SyncResponse) Reset() {
 	*x = SyncResponse{}
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[10]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -564,7 +694,7 @@ func (x *SyncResponse) String() string {
 func (*SyncResponse) ProtoMessage() {}
 
 func (x *SyncResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[10]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -577,7 +707,7 @@ func (x *SyncResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncResponse.ProtoReflect.Descriptor instead.
 func (*SyncResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{10}
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SyncResponse) GetGlobalMaxVersion() int64 {
@@ -601,6 +731,20 @@ func (x *SyncResponse) GetNewEntries() []*Entry {
 	return nil
 }
 
+func (x *SyncResponse) GetNewFiles() []*File {
+	if x != nil {
+		return x.NewFiles
+	}
+	return nil
+}
+
+func (x *SyncResponse) GetUploadTasks() []*UploadTask {
+	if x != nil {
+		return x.UploadTasks
+	}
+	return nil
+}
+
 type RefreshTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
@@ -610,7 +754,7 @@ type RefreshTokenRequest struct {
 
 func (x *RefreshTokenRequest) Reset() {
 	*x = RefreshTokenRequest{}
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[11]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -622,7 +766,7 @@ func (x *RefreshTokenRequest) String() string {
 func (*RefreshTokenRequest) ProtoMessage() {}
 
 func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[11]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +779,7 @@ func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshTokenRequest.ProtoReflect.Descriptor instead.
 func (*RefreshTokenRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{11}
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RefreshTokenRequest) GetRefreshToken() string {
@@ -655,7 +799,7 @@ type RefreshTokenResponse struct {
 
 func (x *RefreshTokenResponse) Reset() {
 	*x = RefreshTokenResponse{}
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[12]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -667,7 +811,7 @@ func (x *RefreshTokenResponse) String() string {
 func (*RefreshTokenResponse) ProtoMessage() {}
 
 func (x *RefreshTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[12]
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -680,7 +824,7 @@ func (x *RefreshTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshTokenResponse.ProtoReflect.Descriptor instead.
 func (*RefreshTokenResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{12}
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RefreshTokenResponse) GetAccessToken() string {
@@ -695,6 +839,86 @@ func (x *RefreshTokenResponse) GetRefreshToken() string {
 		return x.RefreshToken
 	}
 	return ""
+}
+
+type MarkUploadedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EntryId       string                 `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkUploadedRequest) Reset() {
+	*x = MarkUploadedRequest{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkUploadedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkUploadedRequest) ProtoMessage() {}
+
+func (x *MarkUploadedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkUploadedRequest.ProtoReflect.Descriptor instead.
+func (*MarkUploadedRequest) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *MarkUploadedRequest) GetEntryId() string {
+	if x != nil {
+		return x.EntryId
+	}
+	return ""
+}
+
+type MarkUploadedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkUploadedResponse) Reset() {
+	*x = MarkUploadedResponse{}
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkUploadedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkUploadedResponse) ProtoMessage() {}
+
+func (x *MarkUploadedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_proto_gopfkeeper_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkUploadedResponse.ProtoReflect.Descriptor instead.
+func (*MarkUploadedResponse) Descriptor() ([]byte, []int) {
+	return file_internal_proto_gopfkeeper_proto_rawDescGZIP(), []int{16}
 }
 
 var File_internal_proto_gopfkeeper_proto protoreflect.FileDescriptor
@@ -720,7 +944,7 @@ const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"\r\n" +
 	"\vPingRequest\"&\n" +
 	"\fPingResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\"\xcd\x01\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\"\xe6\x01\n" +
 	"\x05Entry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x03R\aversion\x12\x1a\n" +
@@ -728,28 +952,44 @@ const file_internal_proto_gopfkeeper_proto_rawDesc = "" +
 	"\x0enonce_overview\x18\x04 \x01(\fR\rnonceOverview\x12\x18\n" +
 	"\adetails\x18\x05 \x01(\fR\adetails\x12#\n" +
 	"\rnonce_details\x18\x06 \x01(\fR\fnonceDetails\x12\x18\n" +
-	"\adeleted\x18\a \x01(\bR\adeleted\"c\n" +
+	"\adeleted\x18\a \x01(\bR\adeleted\x12\x17\n" +
+	"\ais_file\x18\b \x01(\bR\x06isFile\"R\n" +
+	"\x04File\x12\x19\n" +
+	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12\x19\n" +
+	"\bfile_key\x18\x02 \x01(\fR\afileKey\x12\x14\n" +
+	"\x05nonce\x18\x03 \x01(\fR\x05nonce\"9\n" +
+	"\n" +
+	"UploadTask\x12\x19\n" +
+	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\"\x93\x01\n" +
 	"\vSyncRequest\x12\x1f\n" +
 	"\vmax_version\x18\x01 \x01(\x03R\n" +
 	"maxVersion\x123\n" +
-	"\aentries\x18\x02 \x03(\v2\x19.gophkeeper.service.EntryR\aentries\"\xc0\x01\n" +
+	"\aentries\x18\x02 \x03(\v2\x19.gophkeeper.service.EntryR\aentries\x12.\n" +
+	"\x05files\x18\x03 \x03(\v2\x18.gophkeeper.service.FileR\x05files\"\xba\x02\n" +
 	"\fSyncResponse\x12,\n" +
 	"\x12global_max_version\x18\x01 \x01(\x03R\x10globalMaxVersion\x12F\n" +
 	"\x11processed_entries\x18\x02 \x03(\v2\x19.gophkeeper.service.EntryR\x10processedEntries\x12:\n" +
 	"\vnew_entries\x18\x03 \x03(\v2\x19.gophkeeper.service.EntryR\n" +
-	"newEntries\":\n" +
+	"newEntries\x125\n" +
+	"\tnew_files\x18\x04 \x03(\v2\x18.gophkeeper.service.FileR\bnewFiles\x12A\n" +
+	"\fupload_tasks\x18\x05 \x03(\v2\x1e.gophkeeper.service.UploadTaskR\vuploadTasks\":\n" +
 	"\x13RefreshTokenRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"^\n" +
 	"\x14RefreshTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken2\x91\x04\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"0\n" +
+	"\x13MarkUploadedRequest\x12\x19\n" +
+	"\bentry_id\x18\x01 \x01(\tR\aentryId\"\x16\n" +
+	"\x14MarkUploadedResponse2\xf4\x04\n" +
 	"\x11GophKeeperService\x12a\n" +
 	"\fRegisterUser\x12'.gophkeeper.service.RegisterUserRequest\x1a(.gophkeeper.service.RegisterUserResponse\x12R\n" +
 	"\aGetSalt\x12\".gophkeeper.service.GetSaltRequest\x1a#.gophkeeper.service.GetSaltResponse\x12L\n" +
 	"\x05Login\x12 .gophkeeper.service.LoginRequest\x1a!.gophkeeper.service.LoginResponse\x12I\n" +
 	"\x04Ping\x12\x1f.gophkeeper.service.PingRequest\x1a .gophkeeper.service.PingResponse\x12I\n" +
 	"\x04Sync\x12\x1f.gophkeeper.service.SyncRequest\x1a .gophkeeper.service.SyncResponse\x12a\n" +
-	"\fRefreshToken\x12'.gophkeeper.service.RefreshTokenRequest\x1a(.gophkeeper.service.RefreshTokenResponseB8Z6github.com/dmitrijs2005/gophkeeper/internal/grpc/protob\x06proto3"
+	"\fRefreshToken\x12'.gophkeeper.service.RefreshTokenRequest\x1a(.gophkeeper.service.RefreshTokenResponse\x12a\n" +
+	"\fMarkUploaded\x12'.gophkeeper.service.MarkUploadedRequest\x1a(.gophkeeper.service.MarkUploadedResponseB8Z6github.com/dmitrijs2005/gophkeeper/internal/grpc/protob\x06proto3"
 
 var (
 	file_internal_proto_gopfkeeper_proto_rawDescOnce sync.Once
@@ -763,7 +1003,7 @@ func file_internal_proto_gopfkeeper_proto_rawDescGZIP() []byte {
 	return file_internal_proto_gopfkeeper_proto_rawDescData
 }
 
-var file_internal_proto_gopfkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_internal_proto_gopfkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_internal_proto_gopfkeeper_proto_goTypes = []any{
 	(*RegisterUserRequest)(nil),  // 0: gophkeeper.service.RegisterUserRequest
 	(*RegisterUserResponse)(nil), // 1: gophkeeper.service.RegisterUserResponse
@@ -774,32 +1014,41 @@ var file_internal_proto_gopfkeeper_proto_goTypes = []any{
 	(*PingRequest)(nil),          // 6: gophkeeper.service.PingRequest
 	(*PingResponse)(nil),         // 7: gophkeeper.service.PingResponse
 	(*Entry)(nil),                // 8: gophkeeper.service.Entry
-	(*SyncRequest)(nil),          // 9: gophkeeper.service.SyncRequest
-	(*SyncResponse)(nil),         // 10: gophkeeper.service.SyncResponse
-	(*RefreshTokenRequest)(nil),  // 11: gophkeeper.service.RefreshTokenRequest
-	(*RefreshTokenResponse)(nil), // 12: gophkeeper.service.RefreshTokenResponse
+	(*File)(nil),                 // 9: gophkeeper.service.File
+	(*UploadTask)(nil),           // 10: gophkeeper.service.UploadTask
+	(*SyncRequest)(nil),          // 11: gophkeeper.service.SyncRequest
+	(*SyncResponse)(nil),         // 12: gophkeeper.service.SyncResponse
+	(*RefreshTokenRequest)(nil),  // 13: gophkeeper.service.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil), // 14: gophkeeper.service.RefreshTokenResponse
+	(*MarkUploadedRequest)(nil),  // 15: gophkeeper.service.MarkUploadedRequest
+	(*MarkUploadedResponse)(nil), // 16: gophkeeper.service.MarkUploadedResponse
 }
 var file_internal_proto_gopfkeeper_proto_depIdxs = []int32{
 	8,  // 0: gophkeeper.service.SyncRequest.entries:type_name -> gophkeeper.service.Entry
-	8,  // 1: gophkeeper.service.SyncResponse.processed_entries:type_name -> gophkeeper.service.Entry
-	8,  // 2: gophkeeper.service.SyncResponse.new_entries:type_name -> gophkeeper.service.Entry
-	0,  // 3: gophkeeper.service.GophKeeperService.RegisterUser:input_type -> gophkeeper.service.RegisterUserRequest
-	2,  // 4: gophkeeper.service.GophKeeperService.GetSalt:input_type -> gophkeeper.service.GetSaltRequest
-	4,  // 5: gophkeeper.service.GophKeeperService.Login:input_type -> gophkeeper.service.LoginRequest
-	6,  // 6: gophkeeper.service.GophKeeperService.Ping:input_type -> gophkeeper.service.PingRequest
-	9,  // 7: gophkeeper.service.GophKeeperService.Sync:input_type -> gophkeeper.service.SyncRequest
-	11, // 8: gophkeeper.service.GophKeeperService.RefreshToken:input_type -> gophkeeper.service.RefreshTokenRequest
-	1,  // 9: gophkeeper.service.GophKeeperService.RegisterUser:output_type -> gophkeeper.service.RegisterUserResponse
-	3,  // 10: gophkeeper.service.GophKeeperService.GetSalt:output_type -> gophkeeper.service.GetSaltResponse
-	5,  // 11: gophkeeper.service.GophKeeperService.Login:output_type -> gophkeeper.service.LoginResponse
-	7,  // 12: gophkeeper.service.GophKeeperService.Ping:output_type -> gophkeeper.service.PingResponse
-	10, // 13: gophkeeper.service.GophKeeperService.Sync:output_type -> gophkeeper.service.SyncResponse
-	12, // 14: gophkeeper.service.GophKeeperService.RefreshToken:output_type -> gophkeeper.service.RefreshTokenResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	9,  // 1: gophkeeper.service.SyncRequest.files:type_name -> gophkeeper.service.File
+	8,  // 2: gophkeeper.service.SyncResponse.processed_entries:type_name -> gophkeeper.service.Entry
+	8,  // 3: gophkeeper.service.SyncResponse.new_entries:type_name -> gophkeeper.service.Entry
+	9,  // 4: gophkeeper.service.SyncResponse.new_files:type_name -> gophkeeper.service.File
+	10, // 5: gophkeeper.service.SyncResponse.upload_tasks:type_name -> gophkeeper.service.UploadTask
+	0,  // 6: gophkeeper.service.GophKeeperService.RegisterUser:input_type -> gophkeeper.service.RegisterUserRequest
+	2,  // 7: gophkeeper.service.GophKeeperService.GetSalt:input_type -> gophkeeper.service.GetSaltRequest
+	4,  // 8: gophkeeper.service.GophKeeperService.Login:input_type -> gophkeeper.service.LoginRequest
+	6,  // 9: gophkeeper.service.GophKeeperService.Ping:input_type -> gophkeeper.service.PingRequest
+	11, // 10: gophkeeper.service.GophKeeperService.Sync:input_type -> gophkeeper.service.SyncRequest
+	13, // 11: gophkeeper.service.GophKeeperService.RefreshToken:input_type -> gophkeeper.service.RefreshTokenRequest
+	15, // 12: gophkeeper.service.GophKeeperService.MarkUploaded:input_type -> gophkeeper.service.MarkUploadedRequest
+	1,  // 13: gophkeeper.service.GophKeeperService.RegisterUser:output_type -> gophkeeper.service.RegisterUserResponse
+	3,  // 14: gophkeeper.service.GophKeeperService.GetSalt:output_type -> gophkeeper.service.GetSaltResponse
+	5,  // 15: gophkeeper.service.GophKeeperService.Login:output_type -> gophkeeper.service.LoginResponse
+	7,  // 16: gophkeeper.service.GophKeeperService.Ping:output_type -> gophkeeper.service.PingResponse
+	12, // 17: gophkeeper.service.GophKeeperService.Sync:output_type -> gophkeeper.service.SyncResponse
+	14, // 18: gophkeeper.service.GophKeeperService.RefreshToken:output_type -> gophkeeper.service.RefreshTokenResponse
+	16, // 19: gophkeeper.service.GophKeeperService.MarkUploaded:output_type -> gophkeeper.service.MarkUploadedResponse
+	13, // [13:20] is the sub-list for method output_type
+	6,  // [6:13] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_proto_gopfkeeper_proto_init() }
@@ -813,7 +1062,7 @@ func file_internal_proto_gopfkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_proto_gopfkeeper_proto_rawDesc), len(file_internal_proto_gopfkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

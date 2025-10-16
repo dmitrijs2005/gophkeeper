@@ -208,8 +208,8 @@ func (s *GRPCClient) Ping(ctx context.Context) error {
 }
 
 func (s *GRPCClient) Sync(ctx context.Context,
-	entries []*models.Entry,
-	maxVersion int64) ([]*models.Entry, []*models.Entry, int64, error) {
+	entries []*models.Entry, files []*models.File,
+	maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error) {
 
 	reqEntries := make([]*pb.Entry, 0, len(entries))
 
@@ -221,15 +221,22 @@ func (s *GRPCClient) Sync(ctx context.Context,
 			Details:       e.Details,
 			NonceDetails:  e.NonceDetails,
 			Deleted:       e.Deleted,
+			IsFile:        e.IsFile,
 		}
 		reqEntries = append(reqEntries, entry)
 	}
 
-	req := &pb.SyncRequest{Entries: reqEntries, MaxVersion: maxVersion}
+	reqFiles := make([]*pb.File, 0, len(files))
+	for _, f := range files {
+		file := &pb.File{EntryId: f.EntryID, FileKey: f.EncryptedFileKey, Nonce: f.Nonce}
+		reqFiles = append(reqFiles, file)
+	}
+
+	req := &pb.SyncRequest{Entries: reqEntries, Files: reqFiles, MaxVersion: maxVersion}
 
 	resp, err := s.client.Sync(ctx, req)
 	if err != nil {
-		return nil, nil, 0, s.mapError(err)
+		return nil, nil, nil, nil, 0, s.mapError(err)
 	}
 
 	v := resp.GlobalMaxVersion
@@ -260,7 +267,17 @@ func (s *GRPCClient) Sync(ctx context.Context,
 		})
 	}
 
-	return pe, ne, v, nil
+	var nf []*models.File
+	for _, f := range resp.NewFiles {
+		nf = append(nf, &models.File{EntryID: f.EntryId, EncryptedFileKey: f.FileKey, Nonce: f.Nonce, UploadStatus: "completed"})
+	}
+
+	var ut []*models.FileUploadTask
+	for _, t := range resp.UploadTasks {
+		ut = append(ut, &models.FileUploadTask{EntryID: t.EntryId, URL: t.Url})
+	}
+
+	return pe, ne, nf, ut, v, nil
 
 }
 
@@ -277,4 +294,13 @@ func (s *GRPCClient) mapError(err error) error {
 	default:
 		return fmt.Errorf("rpc error: %w", err)
 	}
+}
+
+func (s *GRPCClient) MarkUploaded(ctx context.Context, entryID string) error {
+	req := &pb.MarkUploadedRequest{EntryId: entryID}
+	_, err := s.client.MarkUploaded(ctx, req)
+	if err != nil {
+		return s.mapError(err)
+	}
+	return nil
 }

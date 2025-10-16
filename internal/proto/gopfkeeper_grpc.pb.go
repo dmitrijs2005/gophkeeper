@@ -25,6 +25,7 @@ const (
 	GophKeeperService_Ping_FullMethodName         = "/gophkeeper.service.GophKeeperService/Ping"
 	GophKeeperService_Sync_FullMethodName         = "/gophkeeper.service.GophKeeperService/Sync"
 	GophKeeperService_RefreshToken_FullMethodName = "/gophkeeper.service.GophKeeperService/RefreshToken"
+	GophKeeperService_MarkUploaded_FullMethodName = "/gophkeeper.service.GophKeeperService/MarkUploaded"
 )
 
 // GophKeeperServiceClient is the client API for GophKeeperService service.
@@ -37,6 +38,7 @@ type GophKeeperServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
+	MarkUploaded(ctx context.Context, in *MarkUploadedRequest, opts ...grpc.CallOption) (*MarkUploadedResponse, error)
 }
 
 type gophKeeperServiceClient struct {
@@ -107,6 +109,16 @@ func (c *gophKeeperServiceClient) RefreshToken(ctx context.Context, in *RefreshT
 	return out, nil
 }
 
+func (c *gophKeeperServiceClient) MarkUploaded(ctx context.Context, in *MarkUploadedRequest, opts ...grpc.CallOption) (*MarkUploadedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MarkUploadedResponse)
+	err := c.cc.Invoke(ctx, GophKeeperService_MarkUploaded_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophKeeperServiceServer is the server API for GophKeeperService service.
 // All implementations must embed UnimplementedGophKeeperServiceServer
 // for forward compatibility.
@@ -117,6 +129,7 @@ type GophKeeperServiceServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
+	MarkUploaded(context.Context, *MarkUploadedRequest) (*MarkUploadedResponse, error)
 	mustEmbedUnimplementedGophKeeperServiceServer()
 }
 
@@ -144,6 +157,9 @@ func (UnimplementedGophKeeperServiceServer) Sync(context.Context, *SyncRequest) 
 }
 func (UnimplementedGophKeeperServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
+}
+func (UnimplementedGophKeeperServiceServer) MarkUploaded(context.Context, *MarkUploadedRequest) (*MarkUploadedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MarkUploaded not implemented")
 }
 func (UnimplementedGophKeeperServiceServer) mustEmbedUnimplementedGophKeeperServiceServer() {}
 func (UnimplementedGophKeeperServiceServer) testEmbeddedByValue()                           {}
@@ -274,6 +290,24 @@ func _GophKeeperService_RefreshToken_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GophKeeperService_MarkUploaded_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkUploadedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServiceServer).MarkUploaded(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeperService_MarkUploaded_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServiceServer).MarkUploaded(ctx, req.(*MarkUploadedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GophKeeperService_ServiceDesc is the grpc.ServiceDesc for GophKeeperService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +338,10 @@ var GophKeeperService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshToken",
 			Handler:    _GophKeeperService_RefreshToken_Handler,
+		},
+		{
+			MethodName: "MarkUploaded",
+			Handler:    _GophKeeperService_MarkUploaded_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

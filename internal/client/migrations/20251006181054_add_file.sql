@@ -4,8 +4,7 @@ ALTER TABLE entries ADD COLUMN is_file NOT NULL DEFAULT 0;
 
 -- Create files table for binary files
 CREATE TABLE files (
-    id                  TEXT PRIMARY KEY,
-    entry_id            TEXT NOT NULL,
+    entry_id            TEXT PRIMARY KEY,
     encrypted_file_key  BLOB NOT NULL,
     nonce               BLOB NOT NULL,
     local_path          TEXT,

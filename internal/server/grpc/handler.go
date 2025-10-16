@@ -75,14 +75,13 @@ func (s *GRPCServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Login
 
 func (s *GRPCServer) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncResponse, error) {
 
-	var pendingEntries []*models.Entry
-
 	v := ctx.Value(shared.UserIDKey)
 	userID, ok := v.(string)
 	if !ok {
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
+	var pendingEntries []*models.Entry
 	for _, e := range req.Entries {
 		pe := &models.Entry{
 			UserID:        userID,
@@ -96,7 +95,18 @@ func (s *GRPCServer) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncRes
 		pendingEntries = append(pendingEntries, pe)
 	}
 
-	processedEntries, newEntries, maxVersion, err := s.entries.Sync(ctx, userID, pendingEntries, req.MaxVersion)
+	var pendingFiles []*models.File
+	for _, f := range req.Files {
+		pf := &models.File{
+			UserID:           userID,
+			EntryID:          f.EntryId,
+			EncryptedFileKey: f.FileKey,
+			Nonce:            f.Nonce,
+		}
+		pendingFiles = append(pendingFiles, pf)
+	}
+
+	processedEntries, newEntries, newFiles, uploadTasks, maxVersion, err := s.entries.Sync(ctx, userID, pendingEntries, pendingFiles, req.MaxVersion)
 	if err != nil {
 		s.logger.Error(ctx, err.Error())
 		if errors.Is(err, common.ErrorUnauthorized) {
@@ -131,10 +141,40 @@ func (s *GRPCServer) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncRes
 		})
 	}
 
+	var nf []*pb.File
+	for _, f := range newFiles {
+		nf = append(nf, &pb.File{
+			EntryId: f.EntryID,
+			FileKey: f.EncryptedFileKey,
+			Nonce:   f.Nonce,
+		})
+	}
+
+	var ut []*pb.UploadTask
+	for _, t := range uploadTasks {
+		ut = append(ut, &pb.UploadTask{
+			EntryId: t.EntryID,
+			Url:     t.URL,
+		})
+	}
+
 	return &pb.SyncResponse{
 		ProcessedEntries: pe,
 		NewEntries:       ne,
+		NewFiles:         nf,
+		UploadTasks:      ut,
 		GlobalMaxVersion: maxVersion,
 	}, nil
 
+}
+
+func (s *GRPCServer) MarkUploaded(ctx context.Context, req *pb.MarkUploadedRequest) (*pb.MarkUploadedResponse, error) {
+
+	entryID := req.EntryId
+
+	err := s.entries.MarkUploaded(ctx, entryID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	return &pb.MarkUploadedResponse{}, nil
 }

@@ -12,5 +12,6 @@ type Client interface {
 	GetSalt(ctx context.Context, username string) ([]byte, error)
 	Login(ctx context.Context, username string, key []byte) error
 	Ping(ctx context.Context) error
-	Sync(ctx context.Context, entries []*models.Entry, maxVersion int64) ([]*models.Entry, []*models.Entry, int64, error)
+	Sync(ctx context.Context, entries []*models.Entry, files []*models.File, maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error)
+	MarkUploaded(ctx context.Context, entryID string) error
 }

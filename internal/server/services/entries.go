@@ -99,27 +99,56 @@ func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, 
 // 	return reg.URL, nil
 // }
 
-func RemoveByIDOnce(xs []models.Entry, id string) []models.Entry {
-	for i := range xs {
-		if xs[i].ID == id {
-			// порядок сохраняется
-			return append(xs[:i], xs[i+1:]...)
-		}
-	}
-	return xs
-}
+// func RemoveByIDOnce(xs []models.Entry, id string) []models.Entry {
+// 	for i := range xs {
+// 		if xs[i].ID == id {
+// 			// порядок сохраняется
+// 			return append(xs[:i], xs[i+1:]...)
+// 		}
+// 	}
+// 	return xs
+// }
 
-func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries []*models.Entry, maxVersion int64) ([]*models.Entry, []*models.Entry, int64, error) {
+func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries []*models.Entry,
+	pendingFiles []*models.File, maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error) {
 
 	userRepo := s.repomanager.Users(s.db)
 	entryRepo := s.repomanager.Entries(s.db)
+	fileRepo := s.repomanager.Files(s.db)
 
 	var processedEntries, otherUpdatedEntries []*models.Entry
 	var maxServerVersion int64
 
 	otherUpdatedEntries, err := entryRepo.SelectUpdated(ctx, userID, maxVersion)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, nil, 0, err
+	}
+
+	otherUpdatedFiles, err := fileRepo.SelectUpdated(ctx, userID, maxVersion)
+	if err != nil {
+		return nil, nil, nil, nil, 0, err
+	}
+
+	var uploadTasks []*models.FileUploadTask
+	var newFiles []models.File
+	for _, f := range pendingFiles {
+		storageKey, url, err := s.GetPresignedPutUrl(ctx)
+		if err != nil {
+			return nil, nil, nil, nil, 0, err
+		}
+
+		f := models.File{
+			EntryID:          f.EntryID,
+			UserID:           userID,
+			Version:          f.Version,
+			EncryptedFileKey: f.EncryptedFileKey,
+			Nonce:            f.Nonce,
+			StorageKey:       storageKey,
+			UploadStatus:     "pending",
+		}
+
+		newFiles = append(newFiles, f)
+		uploadTasks = append(uploadTasks, &models.FileUploadTask{URL: url, EntryID: f.EntryID})
 	}
 
 	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
@@ -145,13 +174,32 @@ func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries [
 
 		}
 
+		for _, f := range newFiles {
+			err = fileRepo.CreateOrUpdate(ctx, &f)
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("error creating entry: %v", err)
+		return nil, nil, nil, nil, 0, fmt.Errorf("error creating entries: %v", err)
 	}
 
-	return processedEntries, otherUpdatedEntries, maxServerVersion, nil
+	return processedEntries, otherUpdatedEntries, otherUpdatedFiles, uploadTasks, maxServerVersion, nil
 
+}
+
+func (s *EntryService) MarkUploaded(ctx context.Context, id string) error {
+
+	fileRepo := s.repomanager.Files(s.db)
+
+	err := fileRepo.MarkUploaded(ctx, id)
+	if err != nil {
+		return fmt.Errorf("error updating file: %v", err)
+	}
+
+	return nil
 }

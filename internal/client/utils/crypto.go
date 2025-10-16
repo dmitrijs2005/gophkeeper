@@ -58,7 +58,7 @@ func DeriveMasterKey(password []byte, salt []byte) []byte {
 //
 //	fmt.Printf("Encrypted data: %x\n", ciphertext)
 //	fmt.Printf("Nonce: %x\n", nonce)
-func EncryptEntry(entry any, key []byte) (ciphertext, nonce []byte, err error) {
+func EncryptEntry111(entry any, key []byte) (ciphertext, nonce []byte, err error) {
 
 	// serializing JSON
 	plaintext, err := json.Marshal(entry)

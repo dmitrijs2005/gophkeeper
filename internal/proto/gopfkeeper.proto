@@ -47,17 +47,32 @@ message Entry {
   bytes details = 5;
   bytes nonce_details = 6;
   bool deleted = 7;
+  bool is_file = 8;
+}
+
+message File {
+  string entry_id = 1;
+  bytes file_key = 2;
+  bytes nonce = 3;
+}
+
+message UploadTask {
+  string entry_id = 1;
+  string url = 2;
 }
 
 message SyncRequest {
   int64 max_version = 1;
   repeated Entry entries = 2;
+  repeated File files = 3;
 }
 
 message SyncResponse {
   int64 global_max_version = 1;
   repeated Entry processed_entries = 2;
   repeated Entry new_entries = 3;
+  repeated File new_files = 4;
+  repeated UploadTask upload_tasks = 5; 
 }
 
 message RefreshTokenRequest {
@@ -69,6 +84,13 @@ message RefreshTokenResponse {
   string refresh_token = 2;
 }
 
+message MarkUploadedRequest {
+  string entry_id = 1;
+}
+
+message MarkUploadedResponse {
+}
+
 service GophKeeperService {
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetSalt(GetSaltRequest) returns (GetSaltResponse);
@@ -76,4 +98,5 @@ service GophKeeperService {
   rpc Ping(PingRequest) returns (PingResponse);
   rpc Sync(SyncRequest) returns (SyncResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc MarkUploaded(MarkUploadedRequest) returns (MarkUploadedResponse);
 }
