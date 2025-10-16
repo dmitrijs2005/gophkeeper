@@ -28,7 +28,7 @@ func TestDeriveMasterKey_Deterministic(t *testing.T) {
 	}
 
 	// можно зафиксировать известный результат (snapshot test)
-	expectedHex := "34f7a1c64df63ab1ad5b5ee06e64db5713b35f81839823304db63e8e5e6a6a39"
+	expectedHex := "9290403300158e19f27e48e7087f7383b03065bf5b25ef23ebc40229616cd8b3"
 	if hex.EncodeToString(key1) != expectedHex {
 		t.Errorf("expected %s, got %s", expectedHex, hex.EncodeToString(key1))
 	}

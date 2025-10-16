@@ -9,8 +9,8 @@ import (
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/client"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
-	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
+	"github.com/dmitrijs2005/gophkeeper/internal/cryptox"
 	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 )
 
@@ -65,8 +65,8 @@ func (a *authService) OfflineLogin(ctx context.Context, username string, passwor
 	}
 
 	// if salt and verifier are avalale, trying to log in locally
-	masterKeyCandidate := utils.DeriveMasterKey(password, savedSalt)
-	verifierCandidate := utils.MakeVerifier(masterKeyCandidate)
+	masterKeyCandidate := cryptox.DeriveMasterKey(password, savedSalt)
+	verifierCandidate := cryptox.MakeVerifier(masterKeyCandidate)
 
 	if subtle.ConstantTimeCompare(savedVerifier, verifierCandidate) == 0 {
 		return nil, client.ErrUnauthorized
@@ -83,8 +83,8 @@ func (a *authService) OnlineLogin(ctx context.Context, userName string, password
 		return nil, fmt.Errorf("get salt error: %w", err)
 	}
 
-	masterKeyCandidate := utils.DeriveMasterKey(password, salt)
-	verifierCandidate := utils.MakeVerifier(masterKeyCandidate)
+	masterKeyCandidate := cryptox.DeriveMasterKey(password, salt)
+	verifierCandidate := cryptox.MakeVerifier(masterKeyCandidate)
 
 	err = a.client.Login(ctx, userName, verifierCandidate)
 
@@ -125,8 +125,8 @@ func (a *authService) saveOfflineData(ctx context.Context,
 
 func (a *authService) Register(ctx context.Context, username string, password []byte) error {
 	salt := common.GenerateRandByteArray(32)
-	key := utils.DeriveMasterKey(password, salt)
-	verifier := utils.MakeVerifier(key)
+	key := cryptox.DeriveMasterKey(password, salt)
+	verifier := cryptox.MakeVerifier(key)
 
 	err := a.client.Register(ctx, username, salt, verifier)
 

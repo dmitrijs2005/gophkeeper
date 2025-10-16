@@ -15,7 +15,6 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/entries"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/files"
 	"github.com/dmitrijs2005/gophkeeper/internal/client/repositories/metadata"
-	"github.com/dmitrijs2005/gophkeeper/internal/client/utils"
 	"github.com/dmitrijs2005/gophkeeper/internal/cryptox"
 	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 	"github.com/dmitrijs2005/gophkeeper/internal/netx"
@@ -123,7 +122,7 @@ func (s *entryService) List(ctx context.Context, masterKey []byte) ([]models.Vie
 	for _, row := range rows {
 
 		var x models.Overview
-		err = utils.DecryptEntry(row.Overview, row.NonceOverview, masterKey, &x)
+		err = cryptox.DecryptEntry(row.Overview, row.NonceOverview, masterKey, &x)
 		if err != nil {
 			log.Printf("error decryption entry: %v", err)
 		}
@@ -154,7 +153,7 @@ func (s *entryService) Get(ctx context.Context, id string, masterKey []byte) (*m
 	}
 
 	var envelope *models.Envelope
-	err = utils.DecryptEntry(entry.Details, entry.NonceDetails, masterKey, &envelope)
+	err = cryptox.DecryptEntry(entry.Details, entry.NonceDetails, masterKey, &envelope)
 
 	if err != nil {
 		return nil, fmt.Errorf("error decrypting entry: %w", err)
