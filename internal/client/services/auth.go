@@ -20,6 +20,7 @@ type AuthService interface {
 	Register(ctx context.Context, username string, password []byte) error
 	Ping(ctx context.Context) error
 	Close(ctx context.Context) error
+	ClearOfflineData(ctx context.Context) error
 }
 
 type authService struct {
@@ -144,4 +145,11 @@ func (a *authService) Ping(ctx context.Context) error {
 
 func (a *authService) Close(ctx context.Context) error {
 	return a.client.Close()
+}
+
+func (a *authService) ClearOfflineData(ctx context.Context) error {
+
+	metadataRepo := a.getMetadataRepo()
+	return metadataRepo.Clear(ctx)
+
 }

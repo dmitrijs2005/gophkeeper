@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -73,7 +74,10 @@ func (a *App) Run(ctx context.Context) {
 }
 
 func (a *App) isLoggedIn() bool {
-	return a.userName != ""
+
+	fmt.Println("a.masterKey", a.masterKey)
+
+	return a.masterKey != nil
 }
 
 func (a *App) StartOnlineStatusWatcher(ctx context.Context, interval time.Duration) {
