@@ -20,8 +20,27 @@ LDFLAGS = -X '${PKG}/internal/buildinfo.buildVersion=${BUILD_VERSION}' \
 vet:
 	go vet ./...
 
+PKGS := $(shell go list ./... | grep -v '/proto')
+COVER_THRESHOLD ?= 80
+COVER_PROFILE ?= coverage.out
+
+.PHONY: test
 test:
-	go test -v ./...
+	@echo "→ Packages (excluding /proto):"
+	@printf '%s\n' $(PKGS)
+	@echo
+	@echo "→ Running tests..."
+	@coverpkg=$$(printf '%s\n' $(PKGS) | paste -sd, -); \
+	go test -coverpkg="$$coverpkg" -coverprofile=$(COVER_PROFILE) $(PKGS)
+	@echo
+	@echo "→ Coverage summary:"
+	@line=$$(go tool cover -func=$(COVER_PROFILE) | awk '/^total:/ {print}'); \
+	echo "$$line"; \
+	pct=$$(echo "$$line" | awk '{gsub("%","",$$3); print $$3}'); \
+	thresh=$(COVER_THRESHOLD); \
+	awk -v p="$$pct" -v t="$$thresh" 'BEGIN{ if (p+0 < t+0) exit 1 }' \
+	|| { echo "Coverage $$pct% < $$thresh% threshold"; exit 1; }; \
+	echo "✓ Coverage OK (≥ $(COVER_THRESHOLD)%)"
 
 fmt:
 	go fmt ./...
