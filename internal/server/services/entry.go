@@ -59,7 +59,7 @@ func GetRandomStorageKey() string {
 
 func (s *EntryService) getPresignClient() (*s3.PresignClient, error) {
 	cfg, err := loadDefaultAWSConfig(context.Background(),
-		config.WithRegion(s.config.S3Region), // обязательный параметр
+		config.WithRegion(s.config.S3Region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			s.config.S3RootUser,     // MINIO_ROOT_USER
 			s.config.S3RootPassword, // MINIO_ROOT_PASSWORD

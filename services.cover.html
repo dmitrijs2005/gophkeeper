@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>services: Go Coverage Report</title>
+		<title>cli: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,9 +55,17 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/dmitrijs2005/gophkeeper/internal/server/services/entry.go (73.4%)</option>
+				<option value="file0">github.com/dmitrijs2005/gophkeeper/internal/client/cli/app.go (16.1%)</option>
 				
-				<option value="file1">github.com/dmitrijs2005/gophkeeper/internal/server/services/user.go (93.7%)</option>
+				<option value="file1">github.com/dmitrijs2005/gophkeeper/internal/client/cli/auth.go (0.0%)</option>
+				
+				<option value="file2">github.com/dmitrijs2005/gophkeeper/internal/client/cli/input.go (85.7%)</option>
+				
+				<option value="file3">github.com/dmitrijs2005/gophkeeper/internal/client/cli/item.go (56.1%)</option>
+				
+				<option value="file4">github.com/dmitrijs2005/gophkeeper/internal/client/cli/repl.go (77.4%)</option>
+				
+				<option value="file5">github.com/dmitrijs2005/gophkeeper/internal/client/cli/root.go (0.0%)</option>
 				
 				</select>
 			</div>
@@ -80,403 +88,697 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package services
+		<pre class="file" id="file0" style="display: none">package cli
 
 import (
+        "bufio"
         "context"
-        "database/sql"
         "fmt"
+        "log"
+        "os"
         "time"
 
-        "github.com/dmitrijs2005/gophkeeper/internal/dbx"
-        sc "github.com/dmitrijs2005/gophkeeper/internal/server/config"
-        "github.com/dmitrijs2005/gophkeeper/internal/server/models"
-        "github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
-        "github.com/google/uuid"
+        "github.com/dmitrijs2005/gophkeeper/internal/client/client"
+        "github.com/dmitrijs2005/gophkeeper/internal/client/config"
+        "github.com/dmitrijs2005/gophkeeper/internal/client/services"
 
-        "github.com/aws/aws-sdk-go-v2/aws"
-        "github.com/aws/aws-sdk-go-v2/config"
-        "github.com/aws/aws-sdk-go-v2/credentials"
-        "github.com/aws/aws-sdk-go-v2/service/s3"
+        _ "modernc.org/sqlite"
 )
 
-var (
-        loadDefaultAWSConfig = config.LoadDefaultConfig
+type Mode string
 
-        newS3ClientFromConfig = func(cfg aws.Config, optFns ...func(*s3.Options)) *s3.Client <span class="cov0" title="0">{
-                return s3.NewFromConfig(cfg, optFns...)
-        }</span>
-
-        newS3PresignClient = func(c *s3.Client) *s3.PresignClient <span class="cov0" title="0">{
-                return s3.NewPresignClient(c)
-        }</span>
+const (
+        ModeOffline  Mode = "offline"
+        ModeOnline   Mode = "online"
+        ModeDisabled Mode = "disabled"
 )
 
-type EntryService struct {
-        db          *sql.DB
-        repomanager repomanager.RepositoryManager
-        config      *sc.Config
+type App struct {
+        config       *config.Config
+        authService  services.AuthService
+        entryService services.EntryService
+        masterKey    []byte
+        userName     string
+        Mode         Mode
+        reader       *bufio.Reader
 }
 
-func NewEntryService(db *sql.DB, repomanager repomanager.RepositoryManager, config *sc.Config) *EntryService <span class="cov10" title="12">{
-        return &amp;EntryService{
-                db:          db,
-                repomanager: repomanager,
-                config:      config,
-        }
-}</span>
+func NewApp(c *config.Config) (*App, error) <span class="cov0" title="0">{
 
-func GetRandomStorageKey() string <span class="cov1" title="1">{
-        d := time.Now()
-        return fmt.Sprintf("users/%d/%d/%d/%v", d.Year(), d.Month(), d.Day(), uuid.New())
-}</span>
+        ctx := context.Background()
 
-func (s *EntryService) getPresignClient() (*s3.PresignClient, error) <span class="cov6" title="5">{
-        cfg, err := loadDefaultAWSConfig(context.Background(),
-                config.WithRegion(s.config.S3Region), // обязательный параметр
-                config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-                        s.config.S3RootUser,     // MINIO_ROOT_USER
-                        s.config.S3RootPassword, // MINIO_ROOT_PASSWORD
-                        "",                      // токен (не нужен)
-                )))
-        if err != nil </span><span class="cov6" title="4">{
+        db, err := client.InitDatabase(ctx, "vault.db")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error initializing database: %s", err.Error())
                 return nil, err
         }</span>
 
-        <span class="cov1" title="1">client := newS3ClientFromConfig(cfg, func(o *s3.Options) </span><span class="cov1" title="1">{
-                o.BaseEndpoint = aws.String(s.config.S3BaseEndpoint)
-        }</span>)
-
-        <span class="cov1" title="1">return newS3PresignClient(client), nil</span>
-}
-
-func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, error) <span class="cov3" title="2">{
-
-        presignClient, err := s.getPresignClient()
-        if err != nil </span><span class="cov3" title="2">{
-                return "", "", err
-        }</span>
-
-        <span class="cov0" title="0">bucket := s.config.S3Bucket
-        key := GetRandomStorageKey()
-
-        // Presigned PUT
-        req, err := presignClient.PresignPutObject(ctx, &amp;s3.PutObjectInput{
-                Bucket: &amp;bucket,
-                Key:    &amp;key,
-        }, s3.WithPresignExpires(15*time.Minute))
+        <span class="cov0" title="0">apiClient, err := client.NewGophKeeperClientService(c.ServerEndpointAddr)
         if err != nil </span><span class="cov0" title="0">{
-                return "", "", err
+                return nil, err
         }</span>
 
-        <span class="cov0" title="0">return key, req.URL, nil</span>
+        <span class="cov0" title="0">as := services.NewAuthService(apiClient, db)
+        es := services.NewEntryService(apiClient, db)
+
+        return &amp;App{config: c, authService: as, entryService: es, reader: bufio.NewReader(os.Stdin)}, nil</span>
 }
 
-func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) <span class="cov1" title="1">{
-
-        presignClient, err := s.getPresignClient()
-        if err != nil </span><span class="cov1" title="1">{
-                return "", err
+func (app *App) setMode(mode Mode) <span class="cov10" title="3">{
+        if app.Mode != mode </span><span class="cov6" title="2">{
+                app.Mode = mode
+                log.Printf("Switched to %s mode\n", mode)
         }</span>
+}
 
-        <span class="cov0" title="0">bucket := s.config.S3Bucket
+func (a *App) Run(ctx context.Context) <span class="cov0" title="0">{
+        defer a.authService.Close(ctx)
+        a.Root(ctx)
+}</span>
 
-        // Presigned GET
-        reg, err := presignClient.PresignGetObject(ctx, &amp;s3.GetObjectInput{
-                Bucket: &amp;bucket,
-                Key:    &amp;key,
-        }, s3.WithPresignExpires(15*time.Minute))
+func (a *App) isLoggedIn() bool <span class="cov6" title="2">{
+
+        fmt.Println("a.masterKey", a.masterKey)
+
+        return a.masterKey != nil
+}</span>
+
+func (a *App) StartOnlineStatusWatcher(ctx context.Context, interval time.Duration) <span class="cov0" title="0">{
+
+        ticker := time.NewTicker(interval)
+        defer ticker.Stop()
+
+        for </span><span class="cov0" title="0">{
+                select </span>{
+                case &lt;-ticker.C:<span class="cov0" title="0">
+                        ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+                        err := a.authService.Ping(ctx)
+                        cancel()
+
+                        if err != nil </span><span class="cov0" title="0">{
+                                if a.Mode == ModeOnline </span><span class="cov0" title="0">{
+                                        a.setMode(ModeOffline)
+                                }</span>
+                        } else<span class="cov0" title="0"> {
+                                if a.Mode != ModeOnline </span><span class="cov0" title="0">{
+                                        a.setMode(ModeOnline)
+                                }</span>
+                        }
+
+                case &lt;-ctx.Done():<span class="cov0" title="0">
+                        return</span>
+                }
+        }
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package cli
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "log"
+        "os"
+
+        "github.com/dmitrijs2005/gophkeeper/internal/client/client"
+        "github.com/dmitrijs2005/gophkeeper/internal/common"
+)
+
+var getSimpleText = GetSimpleText
+var getPassword = GetPassword
+
+func (a *App) Register(ctx context.Context) error <span class="cov0" title="0">{
+
+        userName, err := getSimpleText(a.reader, "Enter email", os.Stdout)
         if err != nil </span><span class="cov0" title="0">{
-                return "", err
+                return err
         }</span>
 
-        <span class="cov0" title="0">return reg.URL, nil</span>
+        <span class="cov0" title="0">password, err := getPassword(os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">defer common.WipeByteArray(password)
+
+        err = a.authService.Register(ctx, userName, password)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err.Error())
+                return err
+        }</span>
+
+        <span class="cov0" title="0">fmt.Println("Success!")
+
+        return nil</span>
+
 }
 
-func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries []*models.Entry,
-        pendingFiles []*models.File, maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error) <span class="cov7" title="6">{
+func (a *App) Login(ctx context.Context) error <span class="cov0" title="0">{
 
-        userRepo := s.repomanager.Users(s.db)
-        entryRepo := s.repomanager.Entries(s.db)
-        fileRepo := s.repomanager.Files(s.db)
-
-        var processedEntries, otherUpdatedEntries []*models.Entry
-        var maxServerVersion int64
-
-        otherUpdatedEntries, err := entryRepo.SelectUpdated(ctx, userID, maxVersion)
-        if err != nil </span><span class="cov1" title="1">{
-                return nil, nil, nil, nil, 0, err
+        userName, err := GetSimpleText(a.reader, "Enter email", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
         }</span>
 
-        <span class="cov6" title="5">otherUpdatedFiles, err := fileRepo.SelectUpdated(ctx, userID, maxVersion)
-        if err != nil </span><span class="cov1" title="1">{
-                return nil, nil, nil, nil, 0, err
+        <span class="cov0" title="0">password, err := GetPassword(os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
         }</span>
 
-        <span class="cov6" title="4">var uploadTasks []*models.FileUploadTask
-        var newFiles []models.File
-        for _, f := range pendingFiles </span><span class="cov1" title="1">{
-                storageKey, url, err := s.GetPresignedPutUrl(ctx)
-                if err != nil </span><span class="cov1" title="1">{
-                        return nil, nil, nil, nil, 0, err
+        <span class="cov0" title="0">defer common.WipeByteArray(password)
+
+        var masterKey []byte
+        var mode Mode
+
+        masterKey, err = a.authService.OnlineLogin(ctx, userName, password)
+
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, client.ErrUnavailable) </span><span class="cov0" title="0">{
+                        log.Printf("Server unavailable, trying offline login...")
+                        masterKey, err = a.authService.OfflineLogin(ctx, userName, password)
+                        if err != nil </span><span class="cov0" title="0">{
+                                log.Printf("Offline login unsuccessfull: %s", err.Error())
+                                mode = ModeDisabled
+                        }</span> else<span class="cov0" title="0"> {
+                                log.Printf("Offline login successfull")
+                                mode = ModeOffline
+                        }</span>
+                } else<span class="cov0" title="0"> {
+                        log.Printf("Login unsuccessfull: %s", err.Error())
                 }</span>
+        } else<span class="cov0" title="0"> {
+                log.Printf("Login successfull")
+        }</span>
 
-                <span class="cov0" title="0">f := models.File{
-                        EntryID:          f.EntryID,
-                        UserID:           userID,
-                        Version:          f.Version,
-                        EncryptedFileKey: f.EncryptedFileKey,
-                        Nonce:            f.Nonce,
-                        StorageKey:       storageKey,
-                        UploadStatus:     "pending",
+        <span class="cov0" title="0">a.masterKey = masterKey
+        a.setMode(mode)
+
+        return nil</span>
+
+}
+
+func (a *App) Logout(ctx context.Context) error <span class="cov0" title="0">{
+        err := a.authService.ClearOfflineData(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">a.masterKey = nil
+
+        return nil</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package cli
+
+import (
+        "bufio"
+        "errors"
+        "fmt"
+        "io"
+        "os"
+        "strings"
+
+        "golang.org/x/term"
+)
+
+var readPassword = term.ReadPassword
+
+func GetSimpleText(reader *bufio.Reader, prompt string, w io.Writer) (string, error) <span class="cov10" title="27">{
+        if _, err := fmt.Fprint(w, prompt+"\n&gt; "); err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov10" title="27">line, err := reader.ReadString('\n')
+        if err != nil </span><span class="cov1" title="1">{
+                if errors.Is(err, io.EOF) &amp;&amp; len(line) &gt; 0 </span><span class="cov1" title="1">{
+                        return strings.TrimSpace(line), nil
+                }</span>
+                <span class="cov0" title="0">return "", err</span>
+        }
+        <span class="cov9" title="26">return strings.TrimSpace(line), nil</span>
+}
+
+func GetPassword(w io.Writer) ([]byte, error) <span class="cov1" title="1">{
+        if _, err := fmt.Fprint(w, "Enter password: "); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov1" title="1">pw, err := readPassword(int(os.Stdin.Fd()))
+        fmt.Fprintln(w)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return pw, nil</span>
+}
+
+func GetMultiline(reader *bufio.Reader, prompt string, w io.Writer) (string, error) <span class="cov4" title="4">{
+        if _, err := fmt.Fprint(w, prompt+"\n(двойной Enter — закончить)\n"); err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov4" title="4">var lines []string
+
+        for </span><span class="cov7" title="9">{
+                line, _ := reader.ReadString('\n')
+                line = strings.TrimRight(line, "\r\n")
+
+                if line == "" </span><span class="cov4" title="4">{
+                        break</span>
                 }
 
-                newFiles = append(newFiles, f)
-                uploadTasks = append(uploadTasks, &amp;models.FileUploadTask{URL: url, EntryID: f.EntryID})</span>
+                <span class="cov5" title="5">lines = append(lines, line)</span>
         }
 
-        <span class="cov4" title="3">err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error </span><span class="cov4" title="3">{
+        <span class="cov4" title="4">text := strings.Join(lines, "\n")
 
-                for _, e := range pendingEntries </span><span class="cov6" title="4">{
+        return strings.TrimSpace(text), nil</span>
+}
 
-                        version, err := userRepo.IncrementCurrentVersion(ctx, userID)
-                        if err != nil </span><span class="cov1" title="1">{
-                                return err
-                        }</span>
+func GetMetadata(reader *bufio.Reader) ([]string, error) <span class="cov7" title="10">{
+        fmt.Println("Enter metadata, format name=value")
 
-                        <span class="cov4" title="3">e.Version = version
-                        maxServerVersion = version
+        lines := make([]string, 0)
+        for </span><span class="cov9" title="19">{
+                line, _ := reader.ReadString('\n')
+                line = strings.TrimRight(line, "\r\n")
 
-                        e.UserID = userID
-
-                        err = entryRepo.CreateOrUpdate(ctx, e)
-                        if err != nil </span><span class="cov1" title="1">{
-                                return err
-                        }</span>
-
-                        <span class="cov3" title="2">processedEntries = append(processedEntries, e)</span>
-
+                if line == "" </span><span class="cov7" title="10">{
+                        break</span>
                 }
 
-                <span class="cov1" title="1">for _, f := range newFiles </span><span class="cov0" title="0">{
-                        err = fileRepo.CreateOrUpdate(ctx, &amp;f)
-                        if err != nil </span><span class="cov0" title="0">{
-                                return err
-                        }</span>
-                }
+                <span class="cov7" title="9">lines = append(lines, line)</span>
+        }
 
-                <span class="cov1" title="1">return nil</span>
-        })
+        <span class="cov7" title="10">return lines, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package cli
 
-        <span class="cov4" title="3">if err != nil </span><span class="cov3" title="2">{
-                return nil, nil, nil, nil, 0, fmt.Errorf("error creating entries: %v", err)
+import (
+        "bufio"
+        "context"
+        "fmt"
+        "log"
+        "os"
+        "path/filepath"
+        "strings"
+
+        "github.com/dmitrijs2005/gophkeeper/internal/client/models"
+        "github.com/dmitrijs2005/gophkeeper/internal/cryptox"
+        "github.com/dmitrijs2005/gophkeeper/internal/filex"
+        "github.com/dmitrijs2005/gophkeeper/internal/netx"
+)
+
+func (a *App) addEntry(ctx context.Context, addEntryDetails func(context.Context) (models.TypedEntry, error)) error <span class="cov6" title="4">{
+
+        item, file, err := a.InputEnvelope(ctx, a.reader, addEntryDetails)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return err
         }</span>
 
-        <span class="cov1" title="1">return processedEntries, otherUpdatedEntries, otherUpdatedFiles, uploadTasks, maxServerVersion, nil</span>
+        <span class="cov6" title="4">err = a.entryService.Add(ctx, item, file, a.masterKey)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return err
+        }</span>
+
+        <span class="cov6" title="4">return nil</span>
 
 }
 
-func (s *EntryService) MarkUploaded(ctx context.Context, id string) error <span class="cov3" title="2">{
+func (a *App) AddNote(ctx context.Context) error <span class="cov1" title="1">{
+        return a.addEntry(ctx, a.addNoteDetails)
+}</span>
 
-        fileRepo := s.repomanager.Files(s.db)
+func (a *App) AddCreditCard(ctx context.Context) error <span class="cov1" title="1">{
+        return a.addEntry(ctx, a.addCreditCardDetails)
+}</span>
 
-        err := fileRepo.MarkUploaded(ctx, id)
-        if err != nil </span><span class="cov1" title="1">{
-                return fmt.Errorf("error updating file: %v", err)
+func (a *App) AddLogin(ctx context.Context) error <span class="cov1" title="1">{
+        return a.addEntry(ctx, a.addLoginDetails)
+}</span>
+
+func (a *App) AddFile(ctx context.Context) error <span class="cov1" title="1">{
+        return a.addEntry(ctx, a.addFileDetails)
+}</span>
+
+func (a *App) addNoteDetails(ctx context.Context) (models.TypedEntry, error) <span class="cov5" title="3">{
+
+        text, err := GetMultiline(a.reader, "Enter note text (double Enter to finish):", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov5" title="3">return &amp;models.Note{Text: text}, nil</span>
+
+}
+
+func (a *App) addCreditCardDetails(ctx context.Context) (models.TypedEntry, error) <span class="cov3" title="2">{
+
+        number, err := GetSimpleText(a.reader, "Enter card number", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">expiration, err := GetSimpleText(a.reader, "Enter card number", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">return &amp;models.CreditCard{Number: number, Expiration: expiration}, nil</span>
+
+}
+
+func (a *App) addLoginDetails(ctx context.Context) (models.TypedEntry, error) <span class="cov3" title="2">{
+
+        username, err := GetSimpleText(a.reader, "Enter username", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">password, err := GetSimpleText(a.reader, "Enter password", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">url, err := GetSimpleText(a.reader, "Enter URL", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">return &amp;models.Login{Username: username, Password: password, URL: url}, nil</span>
+
+}
+
+func (a *App) addFileDetails(ctx context.Context) (models.TypedEntry, error) <span class="cov3" title="2">{
+
+        filePath, err := GetSimpleText(a.reader, "Enter file path", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">return &amp;models.BinaryFile{Path: filePath}, nil</span>
+
+}
+
+func (a *App) InputEnvelope(
+        ctx context.Context,
+        r *bufio.Reader,
+        rest func(ctx context.Context) (models.TypedEntry, error),
+) (models.Envelope, *models.File, error) <span class="cov10" title="10">{
+
+        var zero models.Envelope
+
+        title, err := GetSimpleText(r, "Enter title", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                return zero, nil, fmt.Errorf("get title: %w", err)
+        }</span>
+        <span class="cov10" title="10">title = strings.TrimSpace(title)
+        if title == "" </span><span class="cov1" title="1">{
+                return zero, nil, fmt.Errorf("title is required")
+        }</span>
+        <span class="cov9" title="9">if err := ctx.Err(); err != nil </span><span class="cov3" title="2">{
+                return zero, nil, err
+        }</span>
+        <span class="cov8" title="7">payload, err := rest(ctx)
+        if err != nil </span><span class="cov5" title="3">{
+                return zero, nil, err
+        }</span>
+
+        <span class="cov6" title="4">var file *models.File
+
+        if m, ok := payload.(models.Materializer); ok </span><span class="cov1" title="1">{
+
+                file, err = m.Materialize(ctx)
+                if err != nil </span><span class="cov0" title="0">{
+                        return zero, nil, fmt.Errorf("materialize: %w", err)
+                }</span>
+
+        }
+
+        <span class="cov6" title="4">md, err := GetMetadata(r)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return zero, nil, err
+        }</span>
+
+        <span class="cov6" title="4">metadata, err := models.MetadataFromString(md)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return zero, nil, err
+        }</span>
+
+        <span class="cov6" title="4">x, err := models.Wrap(payload.GetType(), title, metadata, payload)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error: %v", err)
+                return zero, nil, err
+        }</span>
+
+        <span class="cov6" title="4">return x, file, nil</span>
+}
+
+func (a *App) List(ctx context.Context) error <span class="cov1" title="1">{
+        s, err := a.entryService.List(ctx, a.masterKey)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov1" title="1">for _, item := range s </span><span class="cov3" title="2">{
+                fmt.Println(item)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+
+}
+
+func (a *App) Sync(ctx context.Context) error <span class="cov1" title="1">{
+        err := a.entryService.Sync(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (a *App) Delete(ctx context.Context) error <span class="cov1" title="1">{
+
+        id, err := GetSimpleText(a.reader, "Enter record id to delete", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov1" title="1">err = a.entryService.DeleteByID(ctx, id)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return err
         }</span>
 
         <span class="cov1" title="1">return nil</span>
 }
 
-func (s *EntryService) GetPresignedGetURL(ctx context.Context, id string) (string, error) <span class="cov1" title="1">{
+func (a *App) Show(ctx context.Context) error <span class="cov3" title="2">{
 
-        fileRepo := s.repomanager.Files(s.db)
-
-        f, err := fileRepo.GetByEntryID(ctx, id)
-        if err != nil </span><span class="cov1" title="1">{
-                return "", fmt.Errorf("error getting file: %v", err)
+        id, err := GetSimpleText(a.reader, "Enter record id to show", os.Stdout)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
         }</span>
 
-        <span class="cov0" title="0">url, err := s.GetPresignedGetUrl(ctx, f.StorageKey)
+        <span class="cov3" title="2">envelope, err := a.entryService.Get(ctx, id, a.masterKey)
 
-        return url, err</span>
+        if err != nil </span><span class="cov1" title="1">{
+                return err
+        }</span>
+
+        <span class="cov1" title="1">log.Println(envelope.Title)
+
+        x, err := envelope.Unwrap()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov1" title="1">switch item := x.(type) </span>{
+        case models.Note:<span class="cov1" title="1">
+                log.Printf("Note: %s", item.Text)</span>
+
+        case models.CreditCard:<span class="cov0" title="0">
+                log.Printf("Number: %s", item.Number)
+                log.Printf("Expiration: %s", item.Expiration)
+                log.Printf("CVV: %s", item.CVV)
+                log.Printf("Holder: %s", item.Holder)</span>
+
+        case models.Login:<span class="cov0" title="0">
+                log.Printf("Username: %s", item.Username)
+                log.Printf("Password: %s", item.Password)
+                log.Printf("URL: %s", item.URL)</span>
+
+        case models.BinaryFile:<span class="cov0" title="0">
+
+                url, err := a.entryService.GetPresignedGetUrl(ctx, id)
+
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">encrypted, err := netx.DownloadFromS3PresignedURL(url)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">fd, err := a.entryService.GetFile(ctx, id)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">dir, err := filex.EnsureSubdDir("download")
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">ef := &amp;cryptox.EncryptedFile{Cyphertext: encrypted, Key: fd.EncryptedFileKey, Nonce: fd.Nonce}
+
+                ouputFile := filepath.Join(dir, filepath.Base(item.Path))
+
+                err = cryptox.DecryptFileTo(ouputFile, ef)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">log.Printf("File saved to: %s", ouputFile)</span>
+        }
+
+        <span class="cov1" title="1">for _, md := range envelope.Metadata </span><span class="cov0" title="0">{
+                log.Printf("%s: %s", md.Name, md.Value)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
 }
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package services
+		<pre class="file" id="file4" style="display: none">package cli
 
 import (
+        "bufio"
         "context"
-        "crypto/subtle"
-        "database/sql"
-        "errors"
         "fmt"
-        "time"
-
-        "github.com/dmitrijs2005/gophkeeper/internal/common"
-        "github.com/dmitrijs2005/gophkeeper/internal/dbx"
-        "github.com/dmitrijs2005/gophkeeper/internal/server/auth"
-        "github.com/dmitrijs2005/gophkeeper/internal/server/config"
-        "github.com/dmitrijs2005/gophkeeper/internal/server/models"
-        "github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
+        "strings"
 )
 
-type TokenPair struct {
-        AccessToken  string
-        RefreshToken string
+var printlnFn = fmt.Println
+
+type execIface interface {
+        isLoggedIn() bool
+        Register(ctx context.Context) error
+        Login(ctx context.Context) error
+        AddNote(ctx context.Context) error
+        List(ctx context.Context) error
+        AddLogin(ctx context.Context) error
+        AddFile(ctx context.Context) error
+        AddCreditCard(ctx context.Context) error
+        Show(ctx context.Context) error
+        Sync(ctx context.Context) error
+        Logout(ctx context.Context) error
 }
 
-type UserService struct {
-        db                           *sql.DB
-        repomanager                  repomanager.RepositoryManager
-        jwtSecret                    []byte
-        accessTokenValidityDuration  time.Duration
-        refreshTokenValidityDuration time.Duration
-}
-
-func NewUserService(db *sql.DB, m repomanager.RepositoryManager, cfg *config.Config) *UserService <span class="cov10" title="14">{
-        return &amp;UserService{
-                db:                           db,
-                repomanager:                  m,
-                jwtSecret:                    []byte(cfg.SecretKey),
-                accessTokenValidityDuration:  cfg.AccessTokenValidityDuration,
-                refreshTokenValidityDuration: cfg.RefreshTokenValidityDuration,
-        }
-}</span>
-
-func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error) <span class="cov6" title="5">{
-
-        repo := s.repomanager.RefreshTokens(s.db)
-
-        token, err := repo.Find(ctx, refreshToken)
-        if err != nil </span><span class="cov1" title="1">{
-                return nil, fmt.Errorf("error searching refresh token: %v", err)
-        }</span>
-
-        <span class="cov5" title="4">if token.Expires.Before(time.Now()) </span><span class="cov1" title="1">{
-                return nil, common.ErrRefreshTokenExpired
-        }</span>
-
-        <span class="cov4" title="3">var tokenPair *TokenPair
-
-        err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error </span><span class="cov4" title="3">{
-                repoTx := s.repomanager.RefreshTokens(tx)
-                err = repoTx.Delete(ctx, refreshToken)
-                if err != nil </span><span class="cov1" title="1">{
-                        return fmt.Errorf("error deleting refresh token: %v", err)
+func runREPL(ctx context.Context, a execIface, statusFn func() string, scanner *bufio.Scanner) <span class="cov3" title="2">{
+        for </span><span class="cov10" title="12">{
+                printlnFn(fmt.Sprintf("gk&gt; %s &gt; ", statusFn()))
+                if !scanner.Scan() </span><span class="cov0" title="0">{
+                        return
                 }</span>
+                <span class="cov10" title="12">line := scanner.Text()
+                parts := strings.Fields(line)
+                if len(parts) == 0 </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov10" title="12">cmd := parts[0]
+                args := parts[1:]
 
-                <span class="cov3" title="2">tokenPair, err = s.generateTokenPair(ctx, token.UserID, tx)
-                if err != nil </span><span class="cov1" title="1">{
-                        return fmt.Errorf("error generating token pair: %v", err)
-                }</span>
-
-                <span class="cov1" title="1">return err</span>
-
-        })
-
-        <span class="cov4" title="3">if err != nil </span><span class="cov3" title="2">{
-                return nil, err
-        }</span>
-
-        <span class="cov1" title="1">return tokenPair, nil</span>
-
-}
-
-func (s *UserService) Register(ctx context.Context, username string, salt, verifier []byte) (*models.User, error) <span class="cov3" title="2">{
-
-        user := &amp;models.User{
-                UserName: username,
-                Salt:     salt,
-                Verifier: verifier,
+                switch cmd </span>{
+                case "help":<span class="cov3" title="2">
+                        if a.isLoggedIn() </span><span class="cov1" title="1">{
+                                printlnFn("Available commands: (l)ist, addnote, addlogin, logout, exit, show")
+                        }</span> else<span class="cov1" title="1"> {
+                                printlnFn("Available commands: register, login")
+                        }</span>
+                case "register":<span class="cov0" title="0">
+                        _ = a.Register(ctx)</span>
+                case "login":<span class="cov1" title="1">
+                        _ = a.Login(ctx)</span>
+                case "addnote":<span class="cov1" title="1">
+                        _ = a.AddNote(ctx)</span>
+                case "addlogin":<span class="cov0" title="0">
+                        _ = a.AddLogin(ctx)</span>
+                case "addfile":<span class="cov0" title="0">
+                        _ = a.AddFile(ctx)</span>
+                case "addcard":<span class="cov0" title="0">
+                        _ = a.AddCreditCard(ctx)</span>
+                case "show":<span class="cov1" title="1">
+                        _ = a.Show(ctx)</span>
+                case "l", "list":<span class="cov1" title="1">
+                        _ = a.List(ctx)</span>
+                case "sync":<span class="cov1" title="1">
+                        _ = a.Sync(ctx)</span>
+                case "exit", "quit":<span class="cov3" title="2">
+                        printlnFn("Bye!")
+                        return</span>
+                case "get":<span class="cov3" title="2">
+                        if len(args) == 0 </span><span class="cov1" title="1">{
+                                printlnFn("Usage: get &lt;id&gt;")
+                                continue</span>
+                        }
+                        <span class="cov1" title="1">printlnFn(fmt.Sprintf("fetching entry %s ... (stub)", args[0]))</span>
+                case "logout":<span class="cov0" title="0">
+                        _ = a.Logout(ctx)</span>
+                default:<span class="cov1" title="1">
+                        printlnFn("Unknown command:", cmd)</span>
+                }
         }
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package cli
 
-        repo := s.repomanager.Users(s.db)
+import (
+        "bufio"
+        "context"
+        "fmt"
+        "os"
+)
 
-        user, err := repo.Create(ctx, user)
-        if err != nil </span><span class="cov1" title="1">{
-                return nil, fmt.Errorf("error creating user: %v", err)
+func (a *App) getStatus() string <span class="cov0" title="0">{
+        s := ""
+        if a.userName != "" </span><span class="cov0" title="0">{
+                s = a.userName + " "
         }</span>
-
-        <span class="cov1" title="1">return user, nil</span>
+        <span class="cov0" title="0">if a.Mode != "" </span><span class="cov0" title="0">{
+                s = s + string(a.Mode)
+        }</span>
+        <span class="cov0" title="0">if s != "" </span><span class="cov0" title="0">{
+                s = fmt.Sprintf("(%s)", s)
+        }</span>
+        <span class="cov0" title="0">return s</span>
 }
 
-func (s *UserService) getRandomSalt() []byte <span class="cov1" title="1">{
-        return common.GenerateRandByteArray(32)
-}</span>
+func (a *App) Root(ctx context.Context) <span class="cov0" title="0">{
+        printlnFn("Welcome to GophKeeper CLI (type 'help' for commands)")
+        scanner := bufio.NewScanner(os.Stdin)
 
-func (s *UserService) GetSalt(ctx context.Context, userName string) ([]byte, error) <span class="cov4" title="3">{
+        a.Login(ctx) 
 
-        repo := s.repomanager.Users(s.db)
+        go func() </span><span class="cov0" title="0">{
+                a.StartOnlineStatusWatcher(ctx, a.config.OnlineCheckInterval)
+        }</span>()
 
-        user, err := repo.GetUserByLogin(ctx, userName)
-        if err != nil </span><span class="cov3" title="2">{
-                if errors.Is(err, common.ErrorNotFound) </span><span class="cov1" title="1">{
-                        // if user not found, returning random salt
-                        return s.getRandomSalt(), nil
-                }</span>
-                <span class="cov1" title="1">return nil, common.ErrorInternal</span>
-        }
-
-        <span class="cov1" title="1">return user.Salt, nil</span>
-}
-
-func (s *UserService) generateAccessToken(userID string) (string, error) <span class="cov4" title="3">{
-        token, err := auth.GenerateToken(userID, s.jwtSecret, s.accessTokenValidityDuration)
-        if err != nil </span><span class="cov0" title="0">{
-                return "", err
-        }</span>
-        <span class="cov4" title="3">return token, nil</span>
-}
-
-func (s *UserService) generateRefreshToken() (string, error) <span class="cov4" title="3">{
-        token, err := common.MakeRandHexString(32)
-        if err != nil </span><span class="cov0" title="0">{
-                return "", err
-        }</span>
-        <span class="cov4" title="3">return token, nil</span>
-}
-
-func (s *UserService) checkVerifier(verifier []byte, verifierCandidate []byte) bool <span class="cov3" title="2">{
-        return subtle.ConstantTimeCompare(verifier, verifierCandidate) == 1
-}</span>
-
-func (s *UserService) Login(ctx context.Context, userName string, verifierCandidate []byte) (*TokenPair, error) <span class="cov5" title="4">{
-
-        repo := s.repomanager.Users(s.db)
-        user, err := repo.GetUserByLogin(ctx, userName)
-        if err != nil </span><span class="cov3" title="2">{
-                if errors.Is(err, common.ErrorNotFound) </span><span class="cov1" title="1">{
-                        return nil, common.ErrorUnauthorized
-                }</span>
-                <span class="cov1" title="1">return nil, common.ErrorInternal</span>
-        }
-
-        <span class="cov3" title="2">if !s.checkVerifier(user.Verifier, verifierCandidate) </span><span class="cov1" title="1">{
-                return nil, common.ErrorUnauthorized
-        }</span>
-
-        <span class="cov1" title="1">return s.generateTokenPair(ctx, user.ID, s.db)</span>
-}
-
-func (s *UserService) generateTokenPair(ctx context.Context, userID string, tx dbx.DBTX) (*TokenPair, error) <span class="cov4" title="3">{
-        accessToken, err := s.generateAccessToken(userID)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, common.ErrorInternal
-        }</span>
-
-        <span class="cov4" title="3">refreshtoken, err := s.generateRefreshToken()
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, common.ErrorInternal
-        }</span>
-
-        <span class="cov4" title="3">refreshTokenRepo := s.repomanager.RefreshTokens(tx)
-        err = refreshTokenRepo.Create(ctx, userID, refreshtoken, s.refreshTokenValidityDuration)
-        if err != nil </span><span class="cov1" title="1">{
-                return nil, common.ErrorInternal
-        }</span>
-
-        <span class="cov3" title="2">return &amp;TokenPair{AccessToken: accessToken, RefreshToken: refreshtoken}, nil</span>
+        <span class="cov0" title="0">runREPL(ctx, a, a.getStatus, scanner)</span>
 }
 </pre>
 		

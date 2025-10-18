@@ -34,9 +34,9 @@ func newSQLMockDB1(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 func newUserService(t *testing.T, db *sql.DB, rm repomanager.RepositoryManager) *UserService {
 	t.Helper()
 	cfg := &config.Config{
-		SecretKey:                    "k",           // для JWT
-		AccessTokenValidityDuration:  time.Hour,     // не критично
-		RefreshTokenValidityDuration: 2 * time.Hour, // не критично
+		SecretKey:                    "k",           // JWT
+		AccessTokenValidityDuration:  time.Hour,     //
+		RefreshTokenValidityDuration: 2 * time.Hour, //
 	}
 	return NewUserService(db, rm, cfg)
 }

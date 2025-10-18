@@ -14,42 +14,41 @@ import (
 var getSimpleText = GetSimpleText
 var getPassword = GetPassword
 
-func (a *App) Register(ctx context.Context) {
+func (a *App) Register(ctx context.Context) error {
 
 	userName, err := getSimpleText(a.reader, "Enter email", os.Stdout)
 	if err != nil {
-		log.Printf("error: %v", err)
+		return err
 	}
 
 	password, err := getPassword(os.Stdout)
 	if err != nil {
-		log.Printf("error: %v", err)
+		return err
 	}
 
 	defer common.WipeByteArray(password)
 
 	err = a.authService.Register(ctx, userName, password)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		return err
 	}
 
 	fmt.Println("Success!")
 
+	return nil
+
 }
 
-func (a *App) Login(ctx context.Context) {
+func (a *App) Login(ctx context.Context) error {
 
 	userName, err := GetSimpleText(a.reader, "Enter email", os.Stdout)
 	if err != nil {
-		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
 	password, err := GetPassword(os.Stdout)
 	if err != nil {
-		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
 	defer common.WipeByteArray(password)
@@ -80,14 +79,18 @@ func (a *App) Login(ctx context.Context) {
 	a.masterKey = masterKey
 	a.setMode(mode)
 
+	return nil
+
 }
 
-func (a *App) Logout(ctx context.Context) {
+func (a *App) Logout(ctx context.Context) error {
 	err := a.authService.ClearOfflineData(ctx)
 	if err != nil {
-		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
 	a.masterKey = nil
+
+	return nil
+
 }

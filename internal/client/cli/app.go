@@ -3,7 +3,6 @@ package cli
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -49,14 +48,7 @@ func NewApp(c *config.Config) (*App, error) {
 	}
 
 	as := services.NewAuthService(apiClient, db)
-	if err != nil {
-		return nil, err
-	}
-
 	es := services.NewEntryService(apiClient, db)
-	if err != nil {
-		return nil, err
-	}
 
 	return &App{config: c, authService: as, entryService: es, reader: bufio.NewReader(os.Stdin)}, nil
 }
@@ -74,9 +66,6 @@ func (a *App) Run(ctx context.Context) {
 }
 
 func (a *App) isLoggedIn() bool {
-
-	fmt.Println("a.masterKey", a.masterKey)
-
 	return a.masterKey != nil
 }
 

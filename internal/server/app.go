@@ -107,15 +107,3 @@ func (app *App) Run() {
 	wg.Wait()
 
 }
-
-// func (app *App) closeDBIfNeeded(s storage.Storage) (bool, error) {
-
-// 	db, ok := s.(storage.DBStorage)
-// 	if ok {
-// 		err := db.Close()
-// 		return true, err
-// 	}
-
-// 	return false, nil
-
-// }

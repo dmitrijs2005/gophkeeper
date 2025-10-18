@@ -20,7 +20,8 @@ LDFLAGS = -X '${PKG}/internal/buildinfo.buildVersion=${BUILD_VERSION}' \
 vet:
 	go vet ./...
 
-PKGS := $(shell go list ./... | grep -v '/proto')
+PKGS := $(shell go list ./... | grep -v '/proto' | grep -v '^$(PKG)/cmd/')
+
 COVER_THRESHOLD ?= 80
 COVER_PROFILE ?= coverage.out
 

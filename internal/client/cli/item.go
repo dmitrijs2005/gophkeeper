@@ -15,36 +15,38 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/netx"
 )
 
-func (a *App) addEntry(ctx context.Context, addEntryDetails func(context.Context) (models.TypedEntry, error)) {
+func (a *App) addEntry(ctx context.Context, addEntryDetails func(context.Context) (models.TypedEntry, error)) error {
 
 	item, file, err := a.InputEnvelope(ctx, a.reader, addEntryDetails)
 	if err != nil {
 		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
 	err = a.entryService.Add(ctx, item, file, a.masterKey)
 	if err != nil {
 		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
+	return nil
+
 }
 
-func (a *App) addNote(ctx context.Context) {
-	a.addEntry(ctx, a.addNoteDetails)
+func (a *App) AddNote(ctx context.Context) error {
+	return a.addEntry(ctx, a.addNoteDetails)
 }
 
-func (a *App) addCreditCard(ctx context.Context) {
-	a.addEntry(ctx, a.addCreditCardDetails)
+func (a *App) AddCreditCard(ctx context.Context) error {
+	return a.addEntry(ctx, a.addCreditCardDetails)
 }
 
-func (a *App) addLogin(ctx context.Context) {
-	a.addEntry(ctx, a.addLoginDetails)
+func (a *App) AddLogin(ctx context.Context) error {
+	return a.addEntry(ctx, a.addLoginDetails)
 }
 
-func (a *App) addFile(ctx context.Context) {
-	a.addEntry(ctx, a.addFileDetails)
+func (a *App) AddFile(ctx context.Context) error {
+	return a.addEntry(ctx, a.addFileDetails)
 }
 
 func (a *App) addNoteDetails(ctx context.Context) (models.TypedEntry, error) {
@@ -169,59 +171,62 @@ func (a *App) InputEnvelope(
 	return x, file, nil
 }
 
-func (a *App) list(ctx context.Context) {
+func (a *App) List(ctx context.Context) error {
 	s, err := a.entryService.List(ctx, a.masterKey)
 	if err != nil {
-		log.Println(err.Error())
+		return err
 	}
 
 	for _, item := range s {
 		fmt.Println(item)
 	}
+
+	return nil
+
 }
 
-func (a *App) sync(ctx context.Context) {
+func (a *App) Sync(ctx context.Context) error {
 	err := a.entryService.Sync(ctx)
 	if err != nil {
-		log.Println(err.Error())
+		return err
 	}
-
+	return nil
 }
 
-func (a *App) delete(ctx context.Context) {
+func (a *App) Delete(ctx context.Context) error {
 
 	id, err := GetSimpleText(a.reader, "Enter record id to delete", os.Stdout)
 	if err != nil {
-		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
 	err = a.entryService.DeleteByID(ctx, id)
 
 	if err != nil {
-		log.Printf("Error: %s", err.Error())
+		return err
 	}
+
+	return nil
 }
 
-func (a *App) show(ctx context.Context) {
+func (a *App) Show(ctx context.Context) error {
 
 	id, err := GetSimpleText(a.reader, "Enter record id to show", os.Stdout)
 	if err != nil {
-		log.Printf("error: %v", err)
-		return
+		return err
 	}
 
 	envelope, err := a.entryService.Get(ctx, id, a.masterKey)
 
 	if err != nil {
-		log.Printf("Error: %s", err.Error())
+		return err
 	}
 
 	log.Println(envelope.Title)
 
 	x, err := envelope.Unwrap()
 	if err != nil {
-		log.Printf("Error: %s", err.Error())
+		return err
 	}
 
 	switch item := x.(type) {
@@ -244,26 +249,22 @@ func (a *App) show(ctx context.Context) {
 		url, err := a.entryService.GetPresignedGetUrl(ctx, id)
 
 		if err != nil {
-			log.Printf("Error getting download url: %s", err.Error())
-			return
+			return err
 		}
 
 		encrypted, err := netx.DownloadFromS3PresignedURL(url)
 		if err != nil {
-			log.Printf("Error downloading file: %s", err.Error())
-			return
+			return err
 		}
 
 		fd, err := a.entryService.GetFile(ctx, id)
 		if err != nil {
-			log.Printf("Error getting file details: %s", err.Error())
-			return
+			return err
 		}
 
 		dir, err := filex.EnsureSubdDir("download")
 		if err != nil {
-			log.Printf("Error creating dir: %s", err.Error())
-			return
+			return err
 		}
 
 		ef := &cryptox.EncryptedFile{Cyphertext: encrypted, Key: fd.EncryptedFileKey, Nonce: fd.Nonce}
@@ -272,8 +273,7 @@ func (a *App) show(ctx context.Context) {
 
 		err = cryptox.DecryptFileTo(ouputFile, ef)
 		if err != nil {
-			log.Printf("Error creating dir: %s", err.Error())
-			return
+			return err
 		}
 
 		log.Printf("File saved to: %s", ouputFile)
@@ -283,4 +283,5 @@ func (a *App) show(ctx context.Context) {
 		log.Printf("%s: %s", md.Name, md.Value)
 	}
 
+	return nil
 }
