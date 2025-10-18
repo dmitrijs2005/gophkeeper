@@ -96,7 +96,7 @@ func (r *PostgresRepository) MarkUploaded(ctx context.Context, id string) error 
 	}
 
 	if rowsAffected != 1 {
-		return fmt.Errorf("wrong rows affected count: %w", err)
+		return fmt.Errorf("wrong rows affected count: %d", rowsAffected)
 	}
 
 	return nil

@@ -7,13 +7,14 @@ import (
 	"fmt"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 )
 
 type SQLiteRepository struct {
-	db *sql.DB
+	db dbx.DBTX
 }
 
-func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
+func NewSQLiteRepository(db dbx.DBTX) *SQLiteRepository {
 	return &SQLiteRepository{db: db}
 }
 
@@ -66,7 +67,7 @@ func (r *SQLiteRepository) GetAll(ctx context.Context) ([]models.Entry, error) {
 
 func (r *SQLiteRepository) DeleteByID(ctx context.Context, id string) error {
 
-	query := `update entries set deleted=1 where id=?`
+	query := `update entries set deleted=1 where id=? and deleted=0`
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete entry: %w", err)

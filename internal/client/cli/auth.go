@@ -11,14 +11,17 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
 )
 
+var getSimpleText = GetSimpleText
+var getPassword = GetPassword
+
 func (a *App) Register(ctx context.Context) {
 
-	userName, err := GetSimpleText(a.reader, "Enter email", os.Stdout)
+	userName, err := getSimpleText(a.reader, "Enter email", os.Stdout)
 	if err != nil {
 		log.Printf("error: %v", err)
 	}
 
-	password, err := GetPassword(os.Stdout)
+	password, err := getPassword(os.Stdout)
 	if err != nil {
 		log.Printf("error: %v", err)
 	}
@@ -79,7 +82,7 @@ func (a *App) Login(ctx context.Context) {
 
 }
 
-func (a *App) logout(ctx context.Context) {
+func (a *App) Logout(ctx context.Context) {
 	err := a.authService.ClearOfflineData(ctx)
 	if err != nil {
 		log.Printf("error: %v", err)

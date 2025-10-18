@@ -6,15 +6,30 @@ import (
 
 	"github.com/dmitrijs2005/gophkeeper/internal/logging"
 	pb "github.com/dmitrijs2005/gophkeeper/internal/proto"
+	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/services"
 	"google.golang.org/grpc"
 )
 
+type userSvc interface {
+	RefreshToken(ctx context.Context, refresh string) (*services.TokenPair, error)
+	Register(ctx context.Context, username string, salt []byte, verifier []byte) (*models.User, error)
+	GetSalt(ctx context.Context, username string) ([]byte, error)
+	Login(ctx context.Context, username string, verifierCandidate []byte) (*services.TokenPair, error)
+}
+
+type entrySvc interface {
+	Sync(ctx context.Context, userID string, pendingEntries []*models.Entry, pendingFiles []*models.File,
+		clientMaxVersion int64) (processed []*models.Entry, newEntries []*models.Entry, newFiles []*models.File, uploadTasks []*models.FileUploadTask, globalMaxVersion int64, err error)
+	MarkUploaded(ctx context.Context, entryID string) error
+	GetPresignedGetURL(ctx context.Context, entryID string) (string, error)
+}
+
 type GRPCServer struct {
 	pb.UnimplementedGophKeeperServiceServer
 	address   string
-	users     *services.UserService
-	entries   *services.EntryService
+	users     userSvc
+	entries   entrySvc
 	logger    logging.Logger
 	jwtSecret []byte
 }

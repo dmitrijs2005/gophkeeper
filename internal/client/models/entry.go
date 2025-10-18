@@ -80,7 +80,11 @@ func (e Envelope) Unwrap() (any, error) {
 		var v BinaryFile
 		return v, json.Unmarshal(e.Details, &v)
 	default:
-		return nil, json.Unmarshal(e.Details, &map[string]any{})
+		var m map[string]any
+		if err := json.Unmarshal(e.Details, &m); err != nil {
+			return nil, err
+		}
+		return m, nil
 	}
 }
 

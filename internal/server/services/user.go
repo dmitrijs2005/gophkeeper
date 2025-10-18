@@ -55,12 +55,13 @@ func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*T
 	var tokenPair *TokenPair
 
 	err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
-		err = repo.Delete(ctx, refreshToken)
+		repoTx := s.repomanager.RefreshTokens(tx)
+		err = repoTx.Delete(ctx, refreshToken)
 		if err != nil {
 			return fmt.Errorf("error deleting refresh token: %v", err)
 		}
 
-		tokenPair, err = s.generateTokenPair(ctx, token.UserID)
+		tokenPair, err = s.generateTokenPair(ctx, token.UserID, tx)
 		if err != nil {
 			return fmt.Errorf("error generating token pair: %v", err)
 		}
@@ -150,10 +151,10 @@ func (s *UserService) Login(ctx context.Context, userName string, verifierCandid
 		return nil, common.ErrorUnauthorized
 	}
 
-	return s.generateTokenPair(ctx, user.ID)
+	return s.generateTokenPair(ctx, user.ID, s.db)
 }
 
-func (s *UserService) generateTokenPair(ctx context.Context, userID string) (*TokenPair, error) {
+func (s *UserService) generateTokenPair(ctx context.Context, userID string, tx dbx.DBTX) (*TokenPair, error) {
 	accessToken, err := s.generateAccessToken(userID)
 	if err != nil {
 		return nil, common.ErrorInternal
@@ -164,7 +165,7 @@ func (s *UserService) generateTokenPair(ctx context.Context, userID string) (*To
 		return nil, common.ErrorInternal
 	}
 
-	refreshTokenRepo := s.repomanager.RefreshTokens(s.db)
+	refreshTokenRepo := s.repomanager.RefreshTokens(tx)
 	err = refreshTokenRepo.Create(ctx, userID, refreshtoken, s.refreshTokenValidityDuration)
 	if err != nil {
 		return nil, common.ErrorInternal

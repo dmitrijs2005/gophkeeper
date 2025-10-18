@@ -2,17 +2,17 @@ package files
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/dmitrijs2005/gophkeeper/internal/client/models"
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 )
 
 type SQLiteRepository struct {
-	db *sql.DB
+	db dbx.DBTX
 }
 
-func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
+func NewSQLiteRepository(db dbx.DBTX) *SQLiteRepository {
 	return &SQLiteRepository{db: db}
 }
 
@@ -37,7 +37,7 @@ func (r *SQLiteRepository) CreateOrUpdate(ctx context.Context, e *models.File) e
 
 func (r *SQLiteRepository) DeleteByEntryID(ctx context.Context, id string) error {
 
-	query := `update files set deleted=1 where entry_id=?`
+	query := `update files set deleted=1 where entry_id=? and deleted=0`
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete entry: %w", err)

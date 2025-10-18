@@ -22,7 +22,6 @@ import (
 )
 
 type App struct {
-	db           *sql.DB
 	config       *config.Config
 	logger       logging.Logger
 	userService  *services.UserService
@@ -89,7 +88,7 @@ func (app *App) startGRPCServer(ctx context.Context, cancelFunc context.CancelFu
 	}
 }
 
-func (app *App) Run(ctx context.Context) {
+func (app *App) Run() {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 

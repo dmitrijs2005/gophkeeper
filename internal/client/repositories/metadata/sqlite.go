@@ -4,13 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 )
 
 type SQLiteRepository struct {
-	db *sql.DB
+	db dbx.DBTX
 }
 
-func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
+func NewSQLiteRepository(db dbx.DBTX) *SQLiteRepository {
 	return &SQLiteRepository{db: db}
 }
 

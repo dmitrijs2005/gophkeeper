@@ -111,7 +111,6 @@ func TestDownloadFromS3PresignedURL_PartialContent(t *testing.T) {
 
 	want := []byte("partial-body")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// эмулируем 206 Partial Content
 		w.WriteHeader(http.StatusPartialContent)
 		_, _ = w.Write(want)
 	}))
@@ -125,7 +124,6 @@ func TestDownloadFromS3PresignedURL_PartialContent(t *testing.T) {
 func TestDownloadFromS3PresignedURL_ErrorStatus(t *testing.T) {
 	t.Parallel()
 
-	// типичный ответ S3/MinIO на ошибку
 	xmlErr := `<?xml version="1.0" encoding="UTF-8"?><Error><Code>AccessDenied</Code></Error>`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
@@ -142,7 +140,6 @@ func TestDownloadFromS3PresignedURL_ErrorStatus(t *testing.T) {
 func TestDownloadFromS3PresignedURL_NetworkError(t *testing.T) {
 	t.Parallel()
 
-	// поднимаем сервер и сразу закрываем — получим connection error
 	srv := httptest.NewServer(http.NotFoundHandler())
 	srv.Close()
 
@@ -153,7 +150,6 @@ func TestDownloadFromS3PresignedURL_NetworkError(t *testing.T) {
 func TestDownloadFromS3PresignedURL_LargeBody(t *testing.T) {
 	t.Parallel()
 
-	// проверим, что читаем поток полностью
 	large := make([]byte, 256*1024) // 256 KiB
 	for i := range large {
 		large[i] = byte(i % 251)

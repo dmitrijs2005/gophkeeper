@@ -13,9 +13,29 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+)
+
+var (
+	loadDefaultAWSConfig = config.LoadDefaultConfig
+
+	newS3ClientFromConfig = func(cfg aws.Config, optFns ...func(*s3.Options)) *s3.Client {
+		return s3.NewFromConfig(cfg, optFns...)
+	}
+
+	newS3PresignClient = func(c *s3.Client) *s3.PresignClient {
+		return s3.NewPresignClient(c)
+	}
+
+	presignPutObject = func(pc *s3.PresignClient, ctx context.Context, in *s3.PutObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error) {
+		return pc.PresignPutObject(ctx, in, optFns...)
+	}
+	presignGetObject = func(pc *s3.PresignClient, ctx context.Context, in *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error) {
+		return pc.PresignGetObject(ctx, in, optFns...)
+	}
 )
 
 type EntryService struct {
@@ -38,22 +58,22 @@ func GetRandomStorageKey() string {
 }
 
 func (s *EntryService) getPresignClient() (*s3.PresignClient, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background(),
+	cfg, err := loadDefaultAWSConfig(context.Background(),
 		config.WithRegion(s.config.S3Region), // обязательный параметр
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			s.config.S3RootUser,     // MINIO_ROOT_USER
 			s.config.S3RootPassword, // MINIO_ROOT_PASSWORD
-			"",                      // токен (не нужен)
+			"",
 		)))
 	if err != nil {
 		return nil, err
 	}
 
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+	client := newS3ClientFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(s.config.S3BaseEndpoint)
 	})
 
-	return s3.NewPresignClient(client), nil
+	return newS3PresignClient(client), nil
 }
 
 func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, error) {
@@ -67,10 +87,11 @@ func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, 
 	key := GetRandomStorageKey()
 
 	// Presigned PUT
-	req, err := presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
+	req, err := presignPutObject(presignClient, ctx, &s3.PutObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
 	}, s3.WithPresignExpires(15*time.Minute))
+
 	if err != nil {
 		return "", "", err
 	}
@@ -88,7 +109,7 @@ func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (stri
 	bucket := s.config.S3Bucket
 
 	// Presigned GET
-	reg, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+	reg, err := presignGetObject(presignClient, ctx, &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
 	}, s3.WithPresignExpires(15*time.Minute))

@@ -11,7 +11,7 @@ type DBTX interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-func WithTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions, fn func(ctx context.Context, tx DBTX) error) error {
+func WithTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions, fn func(ctx context.Context, tx DBTX) error) (err error) {
 	tx, err := db.BeginTx(ctx, opts)
 	if err != nil {
 		return err
@@ -29,6 +29,6 @@ func WithTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions, fn func(ctx co
 		err = tx.Commit()
 	}()
 
-	return fn(ctx, tx)
-
+	err = fn(ctx, tx) // <-- важная строка: присваиваем во внешнюю err
+	return err
 }

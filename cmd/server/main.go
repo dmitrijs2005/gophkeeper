@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"log/slog"
 	"os"
@@ -13,7 +12,6 @@ import (
 
 func main() {
 
-	ctx := context.Background()
 	cfg := config.LoadConfig()
 
 	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -26,6 +24,6 @@ func main() {
 		return
 	}
 
-	app.Run(ctx)
+	app.Run()
 
 }

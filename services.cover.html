@@ -1,0 +1,512 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>services: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/dmitrijs2005/gophkeeper/internal/server/services/entry.go (73.4%)</option>
+				
+				<option value="file1">github.com/dmitrijs2005/gophkeeper/internal/server/services/user.go (93.7%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package services
+
+import (
+        "context"
+        "database/sql"
+        "fmt"
+        "time"
+
+        "github.com/dmitrijs2005/gophkeeper/internal/dbx"
+        sc "github.com/dmitrijs2005/gophkeeper/internal/server/config"
+        "github.com/dmitrijs2005/gophkeeper/internal/server/models"
+        "github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
+        "github.com/google/uuid"
+
+        "github.com/aws/aws-sdk-go-v2/aws"
+        "github.com/aws/aws-sdk-go-v2/config"
+        "github.com/aws/aws-sdk-go-v2/credentials"
+        "github.com/aws/aws-sdk-go-v2/service/s3"
+)
+
+var (
+        loadDefaultAWSConfig = config.LoadDefaultConfig
+
+        newS3ClientFromConfig = func(cfg aws.Config, optFns ...func(*s3.Options)) *s3.Client <span class="cov0" title="0">{
+                return s3.NewFromConfig(cfg, optFns...)
+        }</span>
+
+        newS3PresignClient = func(c *s3.Client) *s3.PresignClient <span class="cov0" title="0">{
+                return s3.NewPresignClient(c)
+        }</span>
+)
+
+type EntryService struct {
+        db          *sql.DB
+        repomanager repomanager.RepositoryManager
+        config      *sc.Config
+}
+
+func NewEntryService(db *sql.DB, repomanager repomanager.RepositoryManager, config *sc.Config) *EntryService <span class="cov10" title="12">{
+        return &amp;EntryService{
+                db:          db,
+                repomanager: repomanager,
+                config:      config,
+        }
+}</span>
+
+func GetRandomStorageKey() string <span class="cov1" title="1">{
+        d := time.Now()
+        return fmt.Sprintf("users/%d/%d/%d/%v", d.Year(), d.Month(), d.Day(), uuid.New())
+}</span>
+
+func (s *EntryService) getPresignClient() (*s3.PresignClient, error) <span class="cov6" title="5">{
+        cfg, err := loadDefaultAWSConfig(context.Background(),
+                config.WithRegion(s.config.S3Region), // обязательный параметр
+                config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+                        s.config.S3RootUser,     // MINIO_ROOT_USER
+                        s.config.S3RootPassword, // MINIO_ROOT_PASSWORD
+                        "",                      // токен (не нужен)
+                )))
+        if err != nil </span><span class="cov6" title="4">{
+                return nil, err
+        }</span>
+
+        <span class="cov1" title="1">client := newS3ClientFromConfig(cfg, func(o *s3.Options) </span><span class="cov1" title="1">{
+                o.BaseEndpoint = aws.String(s.config.S3BaseEndpoint)
+        }</span>)
+
+        <span class="cov1" title="1">return newS3PresignClient(client), nil</span>
+}
+
+func (s *EntryService) GetPresignedPutUrl(ctx context.Context) (string, string, error) <span class="cov3" title="2">{
+
+        presignClient, err := s.getPresignClient()
+        if err != nil </span><span class="cov3" title="2">{
+                return "", "", err
+        }</span>
+
+        <span class="cov0" title="0">bucket := s.config.S3Bucket
+        key := GetRandomStorageKey()
+
+        // Presigned PUT
+        req, err := presignClient.PresignPutObject(ctx, &amp;s3.PutObjectInput{
+                Bucket: &amp;bucket,
+                Key:    &amp;key,
+        }, s3.WithPresignExpires(15*time.Minute))
+        if err != nil </span><span class="cov0" title="0">{
+                return "", "", err
+        }</span>
+
+        <span class="cov0" title="0">return key, req.URL, nil</span>
+}
+
+func (s *EntryService) GetPresignedGetUrl(ctx context.Context, key string) (string, error) <span class="cov1" title="1">{
+
+        presignClient, err := s.getPresignClient()
+        if err != nil </span><span class="cov1" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov0" title="0">bucket := s.config.S3Bucket
+
+        // Presigned GET
+        reg, err := presignClient.PresignGetObject(ctx, &amp;s3.GetObjectInput{
+                Bucket: &amp;bucket,
+                Key:    &amp;key,
+        }, s3.WithPresignExpires(15*time.Minute))
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov0" title="0">return reg.URL, nil</span>
+}
+
+func (s *EntryService) Sync(ctx context.Context, userID string, pendingEntries []*models.Entry,
+        pendingFiles []*models.File, maxVersion int64) ([]*models.Entry, []*models.Entry, []*models.File, []*models.FileUploadTask, int64, error) <span class="cov7" title="6">{
+
+        userRepo := s.repomanager.Users(s.db)
+        entryRepo := s.repomanager.Entries(s.db)
+        fileRepo := s.repomanager.Files(s.db)
+
+        var processedEntries, otherUpdatedEntries []*models.Entry
+        var maxServerVersion int64
+
+        otherUpdatedEntries, err := entryRepo.SelectUpdated(ctx, userID, maxVersion)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, nil, nil, nil, 0, err
+        }</span>
+
+        <span class="cov6" title="5">otherUpdatedFiles, err := fileRepo.SelectUpdated(ctx, userID, maxVersion)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, nil, nil, nil, 0, err
+        }</span>
+
+        <span class="cov6" title="4">var uploadTasks []*models.FileUploadTask
+        var newFiles []models.File
+        for _, f := range pendingFiles </span><span class="cov1" title="1">{
+                storageKey, url, err := s.GetPresignedPutUrl(ctx)
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, nil, nil, nil, 0, err
+                }</span>
+
+                <span class="cov0" title="0">f := models.File{
+                        EntryID:          f.EntryID,
+                        UserID:           userID,
+                        Version:          f.Version,
+                        EncryptedFileKey: f.EncryptedFileKey,
+                        Nonce:            f.Nonce,
+                        StorageKey:       storageKey,
+                        UploadStatus:     "pending",
+                }
+
+                newFiles = append(newFiles, f)
+                uploadTasks = append(uploadTasks, &amp;models.FileUploadTask{URL: url, EntryID: f.EntryID})</span>
+        }
+
+        <span class="cov4" title="3">err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error </span><span class="cov4" title="3">{
+
+                for _, e := range pendingEntries </span><span class="cov6" title="4">{
+
+                        version, err := userRepo.IncrementCurrentVersion(ctx, userID)
+                        if err != nil </span><span class="cov1" title="1">{
+                                return err
+                        }</span>
+
+                        <span class="cov4" title="3">e.Version = version
+                        maxServerVersion = version
+
+                        e.UserID = userID
+
+                        err = entryRepo.CreateOrUpdate(ctx, e)
+                        if err != nil </span><span class="cov1" title="1">{
+                                return err
+                        }</span>
+
+                        <span class="cov3" title="2">processedEntries = append(processedEntries, e)</span>
+
+                }
+
+                <span class="cov1" title="1">for _, f := range newFiles </span><span class="cov0" title="0">{
+                        err = fileRepo.CreateOrUpdate(ctx, &amp;f)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                }
+
+                <span class="cov1" title="1">return nil</span>
+        })
+
+        <span class="cov4" title="3">if err != nil </span><span class="cov3" title="2">{
+                return nil, nil, nil, nil, 0, fmt.Errorf("error creating entries: %v", err)
+        }</span>
+
+        <span class="cov1" title="1">return processedEntries, otherUpdatedEntries, otherUpdatedFiles, uploadTasks, maxServerVersion, nil</span>
+
+}
+
+func (s *EntryService) MarkUploaded(ctx context.Context, id string) error <span class="cov3" title="2">{
+
+        fileRepo := s.repomanager.Files(s.db)
+
+        err := fileRepo.MarkUploaded(ctx, id)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("error updating file: %v", err)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (s *EntryService) GetPresignedGetURL(ctx context.Context, id string) (string, error) <span class="cov1" title="1">{
+
+        fileRepo := s.repomanager.Files(s.db)
+
+        f, err := fileRepo.GetByEntryID(ctx, id)
+        if err != nil </span><span class="cov1" title="1">{
+                return "", fmt.Errorf("error getting file: %v", err)
+        }</span>
+
+        <span class="cov0" title="0">url, err := s.GetPresignedGetUrl(ctx, f.StorageKey)
+
+        return url, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package services
+
+import (
+        "context"
+        "crypto/subtle"
+        "database/sql"
+        "errors"
+        "fmt"
+        "time"
+
+        "github.com/dmitrijs2005/gophkeeper/internal/common"
+        "github.com/dmitrijs2005/gophkeeper/internal/dbx"
+        "github.com/dmitrijs2005/gophkeeper/internal/server/auth"
+        "github.com/dmitrijs2005/gophkeeper/internal/server/config"
+        "github.com/dmitrijs2005/gophkeeper/internal/server/models"
+        "github.com/dmitrijs2005/gophkeeper/internal/server/repositories/repomanager"
+)
+
+type TokenPair struct {
+        AccessToken  string
+        RefreshToken string
+}
+
+type UserService struct {
+        db                           *sql.DB
+        repomanager                  repomanager.RepositoryManager
+        jwtSecret                    []byte
+        accessTokenValidityDuration  time.Duration
+        refreshTokenValidityDuration time.Duration
+}
+
+func NewUserService(db *sql.DB, m repomanager.RepositoryManager, cfg *config.Config) *UserService <span class="cov10" title="14">{
+        return &amp;UserService{
+                db:                           db,
+                repomanager:                  m,
+                jwtSecret:                    []byte(cfg.SecretKey),
+                accessTokenValidityDuration:  cfg.AccessTokenValidityDuration,
+                refreshTokenValidityDuration: cfg.RefreshTokenValidityDuration,
+        }
+}</span>
+
+func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error) <span class="cov6" title="5">{
+
+        repo := s.repomanager.RefreshTokens(s.db)
+
+        token, err := repo.Find(ctx, refreshToken)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("error searching refresh token: %v", err)
+        }</span>
+
+        <span class="cov5" title="4">if token.Expires.Before(time.Now()) </span><span class="cov1" title="1">{
+                return nil, common.ErrRefreshTokenExpired
+        }</span>
+
+        <span class="cov4" title="3">var tokenPair *TokenPair
+
+        err = dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error </span><span class="cov4" title="3">{
+                repoTx := s.repomanager.RefreshTokens(tx)
+                err = repoTx.Delete(ctx, refreshToken)
+                if err != nil </span><span class="cov1" title="1">{
+                        return fmt.Errorf("error deleting refresh token: %v", err)
+                }</span>
+
+                <span class="cov3" title="2">tokenPair, err = s.generateTokenPair(ctx, token.UserID, tx)
+                if err != nil </span><span class="cov1" title="1">{
+                        return fmt.Errorf("error generating token pair: %v", err)
+                }</span>
+
+                <span class="cov1" title="1">return err</span>
+
+        })
+
+        <span class="cov4" title="3">if err != nil </span><span class="cov3" title="2">{
+                return nil, err
+        }</span>
+
+        <span class="cov1" title="1">return tokenPair, nil</span>
+
+}
+
+func (s *UserService) Register(ctx context.Context, username string, salt, verifier []byte) (*models.User, error) <span class="cov3" title="2">{
+
+        user := &amp;models.User{
+                UserName: username,
+                Salt:     salt,
+                Verifier: verifier,
+        }
+
+        repo := s.repomanager.Users(s.db)
+
+        user, err := repo.Create(ctx, user)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("error creating user: %v", err)
+        }</span>
+
+        <span class="cov1" title="1">return user, nil</span>
+}
+
+func (s *UserService) getRandomSalt() []byte <span class="cov1" title="1">{
+        return common.GenerateRandByteArray(32)
+}</span>
+
+func (s *UserService) GetSalt(ctx context.Context, userName string) ([]byte, error) <span class="cov4" title="3">{
+
+        repo := s.repomanager.Users(s.db)
+
+        user, err := repo.GetUserByLogin(ctx, userName)
+        if err != nil </span><span class="cov3" title="2">{
+                if errors.Is(err, common.ErrorNotFound) </span><span class="cov1" title="1">{
+                        // if user not found, returning random salt
+                        return s.getRandomSalt(), nil
+                }</span>
+                <span class="cov1" title="1">return nil, common.ErrorInternal</span>
+        }
+
+        <span class="cov1" title="1">return user.Salt, nil</span>
+}
+
+func (s *UserService) generateAccessToken(userID string) (string, error) <span class="cov4" title="3">{
+        token, err := auth.GenerateToken(userID, s.jwtSecret, s.accessTokenValidityDuration)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov4" title="3">return token, nil</span>
+}
+
+func (s *UserService) generateRefreshToken() (string, error) <span class="cov4" title="3">{
+        token, err := common.MakeRandHexString(32)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov4" title="3">return token, nil</span>
+}
+
+func (s *UserService) checkVerifier(verifier []byte, verifierCandidate []byte) bool <span class="cov3" title="2">{
+        return subtle.ConstantTimeCompare(verifier, verifierCandidate) == 1
+}</span>
+
+func (s *UserService) Login(ctx context.Context, userName string, verifierCandidate []byte) (*TokenPair, error) <span class="cov5" title="4">{
+
+        repo := s.repomanager.Users(s.db)
+        user, err := repo.GetUserByLogin(ctx, userName)
+        if err != nil </span><span class="cov3" title="2">{
+                if errors.Is(err, common.ErrorNotFound) </span><span class="cov1" title="1">{
+                        return nil, common.ErrorUnauthorized
+                }</span>
+                <span class="cov1" title="1">return nil, common.ErrorInternal</span>
+        }
+
+        <span class="cov3" title="2">if !s.checkVerifier(user.Verifier, verifierCandidate) </span><span class="cov1" title="1">{
+                return nil, common.ErrorUnauthorized
+        }</span>
+
+        <span class="cov1" title="1">return s.generateTokenPair(ctx, user.ID, s.db)</span>
+}
+
+func (s *UserService) generateTokenPair(ctx context.Context, userID string, tx dbx.DBTX) (*TokenPair, error) <span class="cov4" title="3">{
+        accessToken, err := s.generateAccessToken(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, common.ErrorInternal
+        }</span>
+
+        <span class="cov4" title="3">refreshtoken, err := s.generateRefreshToken()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, common.ErrorInternal
+        }</span>
+
+        <span class="cov4" title="3">refreshTokenRepo := s.repomanager.RefreshTokens(tx)
+        err = refreshTokenRepo.Create(ctx, userID, refreshtoken, s.refreshTokenValidityDuration)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, common.ErrorInternal
+        }</span>
+
+        <span class="cov3" title="2">return &amp;TokenPair{AccessToken: accessToken, RefreshToken: refreshtoken}, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

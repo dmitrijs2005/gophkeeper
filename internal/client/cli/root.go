@@ -86,7 +86,7 @@ func (a *App) Root(ctx context.Context) {
 			}
 			fmt.Printf("Fetching entry %s ... (stub)\n", args[0])
 		case "logout":
-			a.logout(ctx)
+			a.Logout(ctx)
 		default:
 			fmt.Println("Unknown command:", cmd)
 		}

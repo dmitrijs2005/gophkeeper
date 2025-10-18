@@ -65,8 +65,7 @@ func GetMultiline(reader *bufio.Reader, prompt string, w io.Writer) (string, err
 func GetMetadata(reader *bufio.Reader) ([]string, error) {
 	fmt.Println("Enter metadata, format name=value")
 
-	var lines []string
-
+	lines := make([]string, 0)
 	for {
 		line, _ := reader.ReadString('\n')
 		line = strings.TrimRight(line, "\r\n")

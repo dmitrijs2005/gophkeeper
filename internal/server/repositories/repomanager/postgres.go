@@ -33,14 +33,16 @@ func (m *PostgresRepositoryManager) Files(db dbx.DBTX) files.Repository {
 	return files.NewPostgresRepository(db)
 }
 
+var gooseUpContext = func(ctx context.Context, db *sql.DB, dir string, opts ...goose.OptionsFunc) error {
+	return goose.UpContext(ctx, db, dir, opts...)
+}
+
 func (m *PostgresRepositoryManager) RunMigrations(ctx context.Context, db *sql.DB) error {
 	goose.SetBaseFS(migrations.Migrations)
 	goose.SetDialect("pgx")
-
-	if err := goose.UpContext(ctx, db, "."); err != nil {
+	if err := gooseUpContext(ctx, db, "."); err != nil { // без опций
 		return err
 	}
-
 	return nil
 }
 

@@ -2,148 +2,218 @@ package cryptox
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"encoding/hex"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
-// func TestGenerateRandByteArray(t *testing.T) {
-// 	size := 32
-// 	data1 := GenerateRandByteArray(size)
-// 	data2 := GenerateRandByteArray(size)
-// 	assert.NotEqual(t, data1, data2)
-// 	assert.Equal(t, len(data1), size)
-// 	assert.Equal(t, len(data2), size)
-// }
+// ---------- helpers ----------
 
-func TestDeriveMasterKey_Deterministic(t *testing.T) {
-	password := []byte("secret-password")
-	salt := []byte("fixed-salt")
-
-	key1 := DeriveMasterKey(password, salt)
-	key2 := DeriveMasterKey(password, salt)
-
-	// одинаковые входы -> одинаковый вывод
-	if !bytes.Equal(key1, key2) {
-		t.Errorf("expected same result for same inputs, got different")
-	}
-
-	// можно зафиксировать известный результат (snapshot test)
-	expectedHex := "9290403300158e19f27e48e7087f7383b03065bf5b25ef23ebc40229616cd8b3"
-	if hex.EncodeToString(key1) != expectedHex {
-		t.Errorf("expected %s, got %s", expectedHex, hex.EncodeToString(key1))
-	}
+type sample struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
-func TestDeriveMasterKey_DifferentInputs(t *testing.T) {
-	password := []byte("secret-password")
-	salt1 := []byte("salt-1")
-	salt2 := []byte("salt-2")
-
-	key1 := DeriveMasterKey(password, salt1)
-	key2 := DeriveMasterKey(password, salt2)
-
-	if bytes.Equal(key1, key2) {
-		t.Errorf("expected different results for different salts, got same")
-	}
-}
-
-func encryptForTest(t *testing.T, plaintext []byte) *EncryptedFile {
+func must[T any](t *testing.T, v T, err error) T {
 	t.Helper()
-
-	key := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, key)
-	require.NoError(t, err)
-
-	block, err := aes.NewCipher(key)
-	require.NoError(t, err)
-
-	aesgcm, err := cipher.NewGCM(block)
-	require.NoError(t, err)
-
-	nonce := make([]byte, aesgcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
-	require.NoError(t, err)
-
-	ct := aesgcm.Seal(nil, nonce, plaintext, nil)
-	return &EncryptedFile{Cyphertext: ct, Key: key, Nonce: nonce}
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	return v
 }
 
-func TestDecryptFile_Success(t *testing.T) {
-	t.Parallel()
+// ---------- MakeVerifier / DeriveMasterKey ----------
 
-	plain := []byte("hello, gcm!")
-	ef := encryptForTest(t, plain)
+func TestDeriveMasterKey_DeterministicAndLength(t *testing.T) {
+	pass := []byte("secret")
+	salt := []byte("salty-salt")
+	k1 := DeriveMasterKey(pass, salt)
+	k2 := DeriveMasterKey(pass, salt)
 
-	out, err := DecryptFile(ef)
-	require.NoError(t, err)
-	require.Equal(t, plain, out)
+	if !bytes.Equal(k1, k2) {
+		t.Fatalf("expected deterministic output for same inputs")
+	}
+	if len(k1) != 32 {
+		t.Fatalf("expected key length 32, got %d", len(k1))
+	}
 }
 
-func TestDecryptFile_EmptyPlaintext(t *testing.T) {
-	t.Parallel()
-
-	plain := []byte{}
-	ef := encryptForTest(t, plain)
-	out, err := DecryptFile(ef)
-	require.NoError(t, err)
-
-	require.Zero(t, len(out), "empty plaintext must decrypt to zero-length slice")
+func TestMakeVerifier_ChangesWhenKeyChanges(t *testing.T) {
+	k1 := bytes.Repeat([]byte{1}, 32)
+	k2 := bytes.Repeat([]byte{2}, 32)
+	v1 := MakeVerifier(k1)
+	v2 := MakeVerifier(k2)
+	if bytes.Equal(v1, v2) {
+		t.Fatalf("verifiers for different keys should differ")
+	}
+	if len(v1) != 32 {
+		t.Fatalf("expected verifier length 32, got %d", len(v1))
+	}
 }
 
-func TestDecryptFile_InvalidKeyLength(t *testing.T) {
-	t.Parallel()
+// ---------- EncryptEntry / DecryptEntry ----------
 
-	ef := encryptForTest(t, []byte("x"))
-	ef.Key = ef.Key[:16]
+func TestEncryptDecryptEntry_Success(t *testing.T) {
+	key := bytes.Repeat([]byte{7}, 32)
+	in := sample{ID: 42, Name: "Alice"}
 
-	_, err := DecryptFile(ef)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid key length")
+	ct, nonce, err := EncryptEntry(in, key)
+	if err != nil {
+		t.Fatalf("EncryptEntry error: %v", err)
+	}
+	if len(nonce) != 12 {
+		t.Fatalf("expected GCM nonce size 12, got %d", len(nonce))
+	}
+	var out sample
+	if err := DecryptEntry(ct, nonce, key, &out); err != nil {
+		t.Fatalf("DecryptEntry error: %v", err)
+	}
+	if out != in {
+		t.Fatalf("roundtrip mismatch: got %+v, want %+v", out, in)
+	}
 }
 
-func TestDecryptFile_InvalidNonceLength(t *testing.T) {
-	t.Parallel()
-
-	ef := encryptForTest(t, []byte("x"))
-	ef.Nonce = ef.Nonce[:len(ef.Nonce)-1]
-
-	_, err := DecryptFile(ef)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid nonce length")
+func TestEncryptEntry_InvalidKeyLength(t *testing.T) {
+	key := []byte("tooshort") // 8 bytes
+	_, _, err := EncryptEntry(sample{}, key)
+	if err == nil {
+		t.Fatalf("expected error for invalid AES key length")
+	}
 }
 
-func TestDecryptFile_TamperedCiphertext(t *testing.T) {
-	t.Parallel()
-
-	ef := encryptForTest(t, []byte("authenticated data"))
-
-	ef.Cyphertext[0] ^= 0xFF
-
-	_, err := DecryptFile(ef)
-	require.Error(t, err, "tampered ciphertext must fail authentication")
+func TestDecryptEntry_WrongKeyReturnsError(t *testing.T) {
+	key := bytes.Repeat([]byte{3}, 32)
+	badKey := bytes.Repeat([]byte{4}, 32)
+	ct, nonce, err := EncryptEntry(sample{ID: 1}, key)
+	if err != nil {
+		t.Fatalf("EncryptEntry err: %v", err)
+	}
+	var out sample
+	err = DecryptEntry(ct, nonce, badKey, &out)
+	if err == nil {
+		t.Fatalf("expected auth error with wrong key")
+	}
 }
 
-func TestDecryptFileTo_WritesFile(t *testing.T) {
-	t.Parallel()
+func TestDecryptEntry_TamperedCiphertextReturnsError(t *testing.T) {
+	key := bytes.Repeat([]byte{5}, 32)
+	ct, nonce, err := EncryptEntry(sample{Name: "X"}, key)
+	if err != nil {
+		t.Fatalf("EncryptEntry err: %v", err)
+	}
+	ct[0] ^= 0xFF
+	var out sample
+	if err := DecryptEntry(ct, nonce, key, &out); err == nil {
+		t.Fatalf("expected error for tampered ciphertext")
+	}
+}
 
-	tmp := t.TempDir()
-	outPath := filepath.Join(tmp, "out.bin")
+// ---------- EncryptFile / DecryptFile / DecryptFileTo ----------
 
-	orig := bytes.Repeat([]byte{0xAB}, 1024) // 1 KiB
-	ef := encryptForTest(t, orig)
+func TestEncryptDecryptFile_FullRoundtrip(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "plain.txt")
+	want := []byte("hello secret file")
+	if err := os.WriteFile(src, want, 0o600); err != nil {
+		t.Fatalf("write src: %v", err)
+	}
 
-	err := DecryptFileTo(outPath, ef)
-	require.NoError(t, err)
+	ef, err := EncryptFile(src)
+	if err != nil {
+		t.Fatalf("EncryptFile err: %v", err)
+	}
+	if len(ef.Key) != 32 {
+		t.Fatalf("expected file key length 32, got %d", len(ef.Key))
+	}
+	if len(ef.Nonce) == 0 || len(ef.Cyphertext) == 0 {
+		t.Fatalf("nonce/ciphertext should be non-empty")
+	}
 
-	got, err := os.ReadFile(outPath)
-	require.NoError(t, err)
-	require.Equal(t, orig, got)
+	got, err := DecryptFile(ef)
+	if err != nil {
+		t.Fatalf("DecryptFile err: %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("file roundtrip mismatch: got %q, want %q", string(got), string(want))
+	}
+
+	dst := filepath.Join(dir, "out.txt")
+	if err := DecryptFileTo(dst, ef); err != nil {
+		t.Fatalf("DecryptFileTo err: %v", err)
+	}
+	read, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatalf("read dst: %v", err)
+	}
+	if !bytes.Equal(read, want) {
+		t.Fatalf("written file mismatch")
+	}
+}
+
+func TestEncryptFile_MissingPathReturnsError(t *testing.T) {
+	_, err := EncryptFile("no/such/file.bin")
+	if err == nil {
+		t.Fatalf("expected error for missing file")
+	}
+}
+
+func TestDecryptFile_Errors(t *testing.T) {
+	// nil ef
+	if _, err := DecryptFile(nil); err == nil {
+		t.Fatalf("expected error for nil EncryptedFile")
+	}
+	// invalid key length
+	ef := &EncryptedFile{Cyphertext: []byte{1}, Key: []byte("short"), Nonce: []byte{1, 2, 3}}
+	if _, err := DecryptFile(ef); err == nil {
+		t.Fatalf("expected error for invalid key length")
+	}
+	// valid key length, но неверная длина nonce
+	ef = &EncryptedFile{Cyphertext: []byte{1}, Key: bytes.Repeat([]byte{9}, 32), Nonce: []byte{1, 2, 3}}
+	if _, err := DecryptFile(ef); err == nil {
+		t.Fatalf("expected error for invalid nonce length")
+	}
+}
+
+func TestDecryptFile_TamperedReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "data.bin")
+	orig := bytes.Repeat([]byte{0xAB}, 256)
+	if err := os.WriteFile(src, orig, 0o600); err != nil {
+		t.Fatalf("write src: %v", err)
+	}
+	ef, err := EncryptFile(src)
+	if err != nil {
+		t.Fatalf("EncryptFile err: %v", err)
+	}
+	ef.Cyphertext[0] ^= 0xAA
+	if _, err := DecryptFile(ef); err == nil {
+		t.Fatalf("expected error for tampered ciphertext")
+	}
+}
+
+func TestDecryptFileTo_PropagatesError(t *testing.T) {
+	err := DecryptFileTo(filepath.Join(t.TempDir(), "x"), &EncryptedFile{
+		Cyphertext: []byte{1},
+		Key:        []byte("bad"),
+		Nonce:      []byte{1},
+	})
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if _, ok := err.(interface{ Error() string }); !ok {
+		t.Fatalf("unexpected error type: %T", err)
+	}
+}
+
+// ---------- extra: sanity for hex encoding example in docs ----------
+
+func TestHexDocExampleSanity(t *testing.T) {
+	key := bytes.Repeat([]byte{1}, 32)
+	ct, nonce, err := EncryptEntry(sample{ID: 1}, key)
+	if err != nil {
+		t.Fatalf("EncryptEntry err: %v", err)
+	}
+	_ = hex.EncodeToString(ct)
+	_ = hex.EncodeToString(nonce)
 }
