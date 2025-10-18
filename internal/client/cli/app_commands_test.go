@@ -73,7 +73,7 @@ type fakeES struct {
 	getURL    string
 	getURLErr error
 
-	// GetFile (если вызывается где-то)
+	// GetFile
 	getFileID  string
 	getFile    *models.File
 	getFileErr error
@@ -116,7 +116,7 @@ func TestAddNote_EnvelopeIsPassed(t *testing.T) {
 	r := readerFromLines(
 		"My title",  // Title
 		"Note body", // Text/Body
-		"",          // <- конец метаданных (обязательная пустая строка)
+		"",
 	)
 	app := newTestApp(es, r, []byte("mk"))
 	if err := app.AddNote(context.Background()); err != nil {
@@ -129,7 +129,6 @@ func TestAddNote_EnvelopeIsPassed(t *testing.T) {
 	if len(es.addMK) == 0 {
 		t.Fatalf("masterKey not propagated")
 	}
-	// Проверяем базовые поля конверта
 	if es.addEnv.Type != models.EntryTypeNote {
 		t.Fatalf("Envelope.Type: want TypeNote, got %v", es.addEnv.Type)
 	}
@@ -140,13 +139,12 @@ func TestAddNote_EnvelopeIsPassed(t *testing.T) {
 
 func TestAddLogin_EnvelopeIsPassed(t *testing.T) {
 	es := &fakeES{}
-	// ввод: username, password, url
 	r := readerFromLines(
 		"My login",            // Title
 		"alice",               // Username
 		"p@ss",                // Password
 		"https://example.org", // URL
-		"",                    // <- конец метаданных
+		"",
 	)
 	app := newTestApp(es, r, []byte("mk"))
 	if err := app.AddLogin(context.Background()); err != nil {
@@ -163,13 +161,12 @@ func TestAddLogin_EnvelopeIsPassed(t *testing.T) {
 
 func TestAddCreditCard_EnvelopeIsPassed(t *testing.T) {
 	es := &fakeES{}
-	// ввод: номер, срок, владелец (подгони под твои prompts)
 	r := readerFromLines(
 		"My card",          // Title
 		"4111111111111111", // Card number
 		"holder=John Doe",  // metadata
 		"expires=10/29",    // metadata
-		"",                 // конец ввода метадаты (обязательная пустая строка)
+		"",
 	)
 	app := newTestApp(es, r, []byte("mk"))
 
@@ -195,7 +192,7 @@ func TestAddFile_PassesFileAndEnvelope(t *testing.T) {
 	r := readerFromLines(
 		"My file title", // Title
 		fp,              // File path
-		"",              // <- конец метаданных
+		"",
 	)
 	app := newTestApp(es, r, []byte("mk"))
 	if err := app.AddFile(context.Background()); err != nil {
@@ -239,10 +236,9 @@ func TestShow_Note_And_File(t *testing.T) {
 		Details: mustJSON(t, models.Note{Text: "Body"}),
 	}
 
-	// отдельный app/reader на каждый вызов
 	app := newTestApp(es, readerFromLines(
-		"42", // id записи
-		"",   // запасная пустая строка (если внутри есть дополнительный Scan)
+		"42",
+		"",
 	), nil)
 
 	if err := app.Show(ctx); err != nil {
@@ -251,44 +247,10 @@ func TestShow_Note_And_File(t *testing.T) {
 	if es.getID != "42" {
 		t.Fatalf("Get called with wrong id: %q", es.getID)
 	}
-	// для заметки presigned URL не должен запрашиваться
 	if es.getURLID != "" {
 		t.Fatalf("unexpected presigned URL for note: %q", es.getURLID)
 	}
 
-	// --- 2) FILE ---
-	// Локальный HTTP-сервер — чтобы http.Get прошёл без сети
-	// ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusOK)
-	// 	_, _ = w.Write([]byte("dummy file content"))
-	// }))
-	// defer ts.Close()
-
-	// // конверт файла (важно: Details совместимы с твоей моделью)
-	// es.getOut = &models.Envelope{
-	// 	Type:    models.EntryTypeBinaryFile,
-	// 	Title:   "File",
-	// 	Details: mustJSON(t, models.File{EntryID: "file-1"}),
-	// }
-	// es.getFile = nil   // пусть код пойдёт по пути скачивания
-	// es.getURL = ts.URL // валидный пресайн (локальный)
-	// es.getURLID = ""   // сброс маркера
-
-	// // ВАЖНО: CLI ожидает мастер-ключ из ввода и проверяет длину 32 байта.
-	// // Дадим 32-символьную строку (32 байта): "0123456789abcdef0123456789abcdef"
-	// app = newTestApp(es, readerFromLines(
-	// 	"file-1",                           // id записи
-	// 	"0123456789abcdef0123456789abcdef", // мастер-ключ (32 байта)
-	// 	"",                                 // запасная пустая
-	// ), nil)
-
-	// if err := app.Show(ctx); err != nil {
-	// 	t.Fatalf("Show(file) err: %v", err)
-	// }
-	// // проверим, что запросили URL именно для нужного id и дернули http
-	// if es.getURLID != "file-1" {
-	// 	t.Fatalf("presigned URL requested for wrong id: %q", es.getURLID)
-	// }
 }
 
 func TestDelete_And_Sync_OK(t *testing.T) {

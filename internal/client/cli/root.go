@@ -25,7 +25,7 @@ func (a *App) Root(ctx context.Context) {
 	printlnFn("Welcome to GophKeeper CLI (type 'help' for commands)")
 	scanner := bufio.NewScanner(os.Stdin)
 
-	a.Login(ctx) // как у тебя было
+	a.Login(ctx)
 
 	go func() {
 		a.StartOnlineStatusWatcher(ctx, a.config.OnlineCheckInterval)

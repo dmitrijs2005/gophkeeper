@@ -143,8 +143,6 @@ EntryService.GetPresignedGetURL — presigned URL на скачивание.
 
 Отладка и советы
 
-Для устойчивых матчей SQL в sqlmock используйте DOTALL-паттерны: (?s)^INSERT ...$.
-
 Если нужно подменять внешние вызовы (например, goose.UpContext или S3 Presign), удобно ввести «швы»:
 
 var gooseUpContext = func(ctx context.Context, db *sql.DB, dir string, opts ...goose.OptionsFunc) error {

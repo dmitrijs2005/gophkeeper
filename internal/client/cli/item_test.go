@@ -23,7 +23,7 @@ func TestAddNoteDetails_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	note, ok := got.(*models.Note)
-	require.True(t, ok, "ожидали *models.Note")
+	require.True(t, ok, "*models.Note")
 	assert.Equal(t, "hello\nworld", note.Text)
 }
 

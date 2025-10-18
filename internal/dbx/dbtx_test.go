@@ -46,7 +46,7 @@ func TestWithTx_RollbackOnFnError(t *testing.T) {
 	err := WithTx(context.Background(), db, nil, func(ctx context.Context, tx DBTX) error {
 		_, e := tx.ExecContext(ctx, `INSERT INTO t(v) VALUES ('fail')`)
 		require.NoError(t, e)
-		return errors.New("boom") // должно привести к ROLLBACK
+		return errors.New("boom")
 	})
 	require.Error(t, err)
 
@@ -72,7 +72,7 @@ func TestWithTx_RollbackOnPanic(t *testing.T) {
 
 func TestWithTx_BeginError(t *testing.T) {
 	db := setupDB(t)
-	require.NoError(t, db.Close()) // ломаем соединение
+	require.NoError(t, db.Close())
 
 	err := WithTx(context.Background(), db, nil, func(ctx context.Context, tx DBTX) error {
 		return nil

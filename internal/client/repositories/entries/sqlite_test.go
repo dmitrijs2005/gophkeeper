@@ -61,7 +61,6 @@ func TestCreateOrUpdate_InsertAndUpdate(t *testing.T) {
 	assert.Equal(t, []byte("nd1"), nd)
 	assert.Equal(t, 0, del)
 
-	// update по тому же id
 	e1b := &models.Entry{
 		Id:            "id1",
 		Overview:      []byte("ov2"),
@@ -86,7 +85,6 @@ func TestGetAll_OnlyNotDeleted(t *testing.T) {
 	db := setupDB(t)
 	ctx := context.Background()
 
-	// seed: два активных, один удалённый
 	_, err := db.Exec(`INSERT INTO entries(id, overview, nonce_overview, details, nonce_details, deleted) VALUES
 	  ('a', x'01', x'02', x'03', x'04', 0),
 	  ('b', x'05', x'06', x'07', x'08', 0),
@@ -101,7 +99,6 @@ func TestGetAll_OnlyNotDeleted(t *testing.T) {
 	ids := make(map[string]struct{})
 	for _, e := range got {
 		ids[e.Id] = struct{}{}
-		// метод выбирает только overview/nonce_overview — этого достаточно
 		require.NotNil(t, e.Overview)
 		require.NotNil(t, e.NonceOverview)
 	}

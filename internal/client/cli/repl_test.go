@@ -53,19 +53,10 @@ func (f *fakeExec) Logout(ctx context.Context) error {
 }
 
 func TestRunREPL_LoginFlowAndCommands(t *testing.T) {
-	// подменим печать, чтобы не шуметь в тестах
 	origPrint := printlnFn
 	printlnFn = func(...any) (int, error) { return 0, nil }
 	t.Cleanup(func() { printlnFn = origPrint })
 
-	// последовательность команд:
-	// - help (гость)
-	// - login (станем loggedIn)
-	// - help (после логина)
-	// - addnote, list, show 123, sync
-	// - get 42 (ветка "get")
-	// - unknown
-	// - exit
 	input := strings.NewReader(strings.Join([]string{
 		"help",
 		"login",
@@ -88,7 +79,6 @@ func TestRunREPL_LoginFlowAndCommands(t *testing.T) {
 	if len(exec.calls) < len(wantOrder) {
 		t.Fatalf("few calls: %+v", exec.calls)
 	}
-	// проверим, что нужные команды прозвучали в ожидаемой последовательности (рыхло)
 	idx := 0
 	for _, c := range exec.calls {
 		if idx < len(wantOrder) && c == wantOrder[idx] {
@@ -106,14 +96,12 @@ func TestRunREPL_UsageAndQuit(t *testing.T) {
 	printlnFn = func(...any) (int, error) { return 0, nil }
 	t.Cleanup(func() { printlnFn = origPrint })
 
-	// get без аргумента → Usage, затем quit
 	input := strings.NewReader("get\nquit\n")
 	exec := &fakeExec{loggedIn: true}
 	sc := bufio.NewScanner(input)
 
 	runREPL(context.Background(), exec, func() string { return "s" }, sc)
 
-	// Никаких вызовов exec.* быть не должно
 	if len(exec.calls) != 0 {
 		t.Fatalf("unexpected calls: %v", exec.calls)
 	}

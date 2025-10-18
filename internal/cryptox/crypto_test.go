@@ -168,7 +168,6 @@ func TestDecryptFile_Errors(t *testing.T) {
 	if _, err := DecryptFile(ef); err == nil {
 		t.Fatalf("expected error for invalid key length")
 	}
-	// valid key length, но неверная длина nonce
 	ef = &EncryptedFile{Cyphertext: []byte{1}, Key: bytes.Repeat([]byte{9}, 32), Nonce: []byte{1, 2, 3}}
 	if _, err := DecryptFile(ef); err == nil {
 		t.Fatalf("expected error for invalid nonce length")

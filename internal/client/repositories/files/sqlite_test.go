@@ -59,7 +59,6 @@ func TestCreateOrUpdate_InsertAndUpdate(t *testing.T) {
 	assert.Equal(t, "pending", us)
 	assert.Equal(t, 0, del)
 
-	// update той же записи
 	f2 := &models.File{
 		EntryID:          "e1",
 		EncryptedFileKey: []byte("k2"),

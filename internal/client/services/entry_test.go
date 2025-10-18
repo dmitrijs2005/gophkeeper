@@ -220,7 +220,7 @@ func TestSync_UpsertsAndUpdatesVersion_NoUploads(t *testing.T) {
 		SyncNewFiles: []*models.File{
 			{EntryID: "n1", EncryptedFileKey: []byte("fk"), Nonce: []byte("fn"), LocalPath: "/tmp/a", UploadStatus: "completed"},
 		},
-		SyncUploadTasks: nil, // чтобы не трогать сеть
+		SyncUploadTasks: nil,
 		SyncMaxVersion:  7,
 	}
 	svc := NewEntryService(fc, db)

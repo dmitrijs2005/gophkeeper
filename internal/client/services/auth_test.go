@@ -49,9 +49,7 @@ func getMeta(t *testing.T, db *sql.DB, k string) []byte {
 
 // ---- fake client ----
 
-// fakeClient реализует client.Client для юнит-тестов AuthService.
 type fakeClient struct {
-	// поведение/результаты
 	CloseErr    error
 	RegisterErr error
 
@@ -62,14 +60,11 @@ type fakeClient struct {
 
 	PingErr error
 
-	// Sync/MarkUploaded/GetPresignedGetURL — не используются этими тестами,
-	// но должны соответствовать интерфейсу
 	SyncErr               error
 	MarkUploadedErr       error
 	GetPresignedGetURLRet string
 	GetPresignedGetURLErr error
 
-	// для проверок аргументов
 	LastRegisterUser string
 	LastRegisterSalt []byte
 	LastRegisterKey  []byte
@@ -119,19 +114,17 @@ func (f *fakeClient) GetPresignedGetURL(ctx context.Context, entryID string) (st
 // ---- TESTS ----
 
 func TestOfflineLogin_NoLocalData_CurrentBehaviorUnauthorized(t *testing.T) {
-	db := setupDB(t) // пустая таблица metadata
+	db := setupDB(t)
 	fc := &fakeClient{}
 	svc := NewAuthService(fc, db)
 
 	_, err := svc.OfflineLogin(context.Background(), "user@example.com", []byte("pass"))
-	// По текущему коду: savedUsername == nil => string(nil) == "" => != username => ErrUnauthorized
 	require.ErrorIs(t, err, client.ErrUnauthorized)
 }
 
 func TestOfflineLogin_UsernameMismatch_Unauthorized(t *testing.T) {
 	db := setupDB(t)
 
-	// seed offline data для другого пользователя
 	insertMeta(t, db, "username", []byte("other"))
 	insertMeta(t, db, "salt", []byte("salt"))
 	insertMeta(t, db, "verifier", []byte{1, 2, 3})
@@ -146,7 +139,6 @@ func TestOfflineLogin_UsernameMismatch_Unauthorized(t *testing.T) {
 func TestOfflineLogin_WrongPassword_Unauthorized(t *testing.T) {
 	db := setupDB(t)
 
-	// создаём валидные salt/verifier для пароля "correct"
 	salt := []byte("salty")
 	mk := cryptox.DeriveMasterKey([]byte("correct"), salt)
 	ver := cryptox.MakeVerifier(mk)
@@ -210,17 +202,14 @@ func TestOnlineLogin_Success_SavesOfflineDataAndReturnsMasterKey(t *testing.T) {
 	got, err := svc.OnlineLogin(context.Background(), "user", []byte("pass"))
 	require.NoError(t, err)
 
-	// проверяем, что в metadata легли username/salt/verifier
 	require.Equal(t, []byte("user"), getMeta(t, db, "username"))
 	require.Equal(t, []byte("salt"), getMeta(t, db, "salt"))
 	savedVerifier := getMeta(t, db, "verifier")
 	require.NotEmpty(t, savedVerifier)
 
-	// и что мастер-ключ соответствует паролю/соли
 	expected := cryptox.DeriveMasterKey([]byte("pass"), []byte("salt"))
 	require.Equal(t, expected, got)
 
-	// клиент получил логин с верным verifierCandidate
 	require.Equal(t, "user", fc.LastLoginUser)
 	require.Equal(t, savedVerifier, fc.LastLoginKey)
 }
@@ -240,7 +229,6 @@ func TestRegister_DelegatesToClient(t *testing.T) {
 
 func TestPing_Close_ClearOfflineData_Delegations(t *testing.T) {
 	db := setupDB(t)
-	// seed что-нибудь и проверим Clear
 	insertMeta(t, db, "x", []byte("y"))
 
 	fc := &fakeClient{}
@@ -251,7 +239,6 @@ func TestPing_Close_ClearOfflineData_Delegations(t *testing.T) {
 	require.NoError(t, svc.Close(context.Background()))
 
 	require.NoError(t, svc.ClearOfflineData(context.Background()))
-	// таблица очищена
 	var n int
 	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM metadata`).Scan(&n))
 	require.Equal(t, 0, n)

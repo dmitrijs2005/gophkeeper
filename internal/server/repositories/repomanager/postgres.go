@@ -40,7 +40,7 @@ var gooseUpContext = func(ctx context.Context, db *sql.DB, dir string, opts ...g
 func (m *PostgresRepositoryManager) RunMigrations(ctx context.Context, db *sql.DB) error {
 	goose.SetBaseFS(migrations.Migrations)
 	goose.SetDialect("pgx")
-	if err := gooseUpContext(ctx, db, "."); err != nil { // без опций
+	if err := gooseUpContext(ctx, db, "."); err != nil {
 		return err
 	}
 	return nil

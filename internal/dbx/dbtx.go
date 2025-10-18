@@ -29,6 +29,6 @@ func WithTx(ctx context.Context, db *sql.DB, opts *sql.TxOptions, fn func(ctx co
 		err = tx.Commit()
 	}()
 
-	err = fn(ctx, tx) // <-- важная строка: присваиваем во внешнюю err
+	err = fn(ctx, tx)
 	return err
 }

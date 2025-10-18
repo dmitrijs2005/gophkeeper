@@ -51,7 +51,6 @@ func (f *fakeEntriesRepo) CreateOrUpdate(ctx context.Context, e *models.Entry) e
 	if f.createErr != nil {
 		return f.createErr
 	}
-	// сохраняем, что звали (для проверок)
 	f.created = append(f.created, e)
 	return nil
 }

@@ -8,9 +8,6 @@ import (
 	"testing"
 )
 
-// ---------- тестовые заглушки ввода ----------
-
-// подмена getPassword; getSimpleText НЕ трогаем — пусть читает из a.reader
 func stubPassword1(t *testing.T, pw []byte) func() {
 	t.Helper()
 	orig := getPassword

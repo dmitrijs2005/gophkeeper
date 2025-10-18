@@ -8,12 +8,6 @@ import (
 	"testing"
 )
 
-// // helper: создаёт *bufio.Reader из набора строк (каждая строка -> одна "вводимая" строка)
-// func readerFromLines(lines ...string) *bufio.Reader {
-// 	return bufio.NewReader(strings.NewReader(strings.Join(lines, "\n")))
-// }
-
-// подмена getPassword; getSimpleText НЕ трогаем — пусть читает из a.reader
 func stubPassword(t *testing.T, pw []byte) func() {
 	t.Helper()
 	orig := getPassword
@@ -24,7 +18,7 @@ func stubPassword(t *testing.T, pw []byte) func() {
 // ---- getStatus ----
 
 func TestGetStatus_Empty(t *testing.T) {
-	a := &App{} // без userName и Mode
+	a := &App{}
 	got := a.getStatus()
 	if got != "" {
 		t.Fatalf("want empty status, got %q", got)
@@ -34,7 +28,6 @@ func TestGetStatus_Empty(t *testing.T) {
 func TestGetStatus_WithUsernameOnly(t *testing.T) {
 	a := &App{userName: "alice"}
 	got := a.getStatus()
-	// В коде: s = "alice " -> "(alice )"
 	want := "(alice )"
 	if got != want {
 		t.Fatalf("want %q, got %q", want, got)
@@ -69,13 +62,11 @@ func (f *fakeExec1) Logout(context.Context) error        { f.logged = false; ret
 func TestRunREPL_HelpThenQuit(t *testing.T) {
 	silencePrintln(t)
 
-	// подадим две команды: help и quit
 	input := "help\nquit\n"
 	sc := bufio.NewScanner(strings.NewReader(input))
 
 	exec := &fakeExec1{}
 	status := func() string { return "status" }
 
-	// если что-то не так с парсингом, тут будут зависания/паники
 	runREPL(context.Background(), exec, status, sc)
 }

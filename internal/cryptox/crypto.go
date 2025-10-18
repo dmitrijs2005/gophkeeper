@@ -151,7 +151,6 @@ func EncryptFile(path string) (*EncryptedFile, error) {
 		return nil, err
 	}
 
-	// random file_key (32 байта)
 	key := common.GenerateRandByteArray(32)
 
 	// creating AES-GCM

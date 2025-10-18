@@ -12,7 +12,7 @@ func newTestLogger(t *testing.T) (*SlogLogger, *bytes.Buffer) {
 	t.Helper()
 	var buf bytes.Buffer
 	h := slog.NewTextHandler(&buf, &slog.HandlerOptions{
-		Level: slog.LevelDebug, // чтобы логировался и Debug
+		Level: slog.LevelDebug,
 	})
 	l := slog.New(h)
 	return NewSlogLogger(l), &buf

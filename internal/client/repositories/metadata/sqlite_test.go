@@ -45,7 +45,7 @@ func TestGet_NotExists_ReturnsNilNil(t *testing.T) {
 
 	v, err := r.Get(ctx, "absent")
 	require.NoError(t, err)
-	require.Nil(t, v) // контракт: (nil, nil) если нет строки
+	require.Nil(t, v)
 }
 
 func TestSet_UpsertOverwritesValue(t *testing.T) {
@@ -84,12 +84,10 @@ func TestDelete_RemovesKey_AndIsIdempotent(t *testing.T) {
 	require.NoError(t, r.Set(ctx, "x", []byte{0x01}))
 	require.NoError(t, r.Delete(ctx, "x"))
 
-	// теперь Get вернёт (nil, nil)
 	v, err := r.Get(ctx, "x")
 	require.NoError(t, err)
 	require.Nil(t, v)
 
-	// повторное удаление не должно падать
 	require.NoError(t, r.Delete(ctx, "x"))
 }
 
@@ -107,7 +105,6 @@ func TestClear_RemovesAllKeys(t *testing.T) {
 	assert.Empty(t, m)
 }
 
-// отдельная инициализация: БЕЗ NOT NULL, чтобы можно было вставить NULL и сломать Scan
 func setupDBNullable(t *testing.T) *sql.DB {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
@@ -123,7 +120,6 @@ func TestGet_DBErrorWrapped(t *testing.T) {
 	r := NewSQLiteRepository(db)
 	ctx := context.Background()
 
-	// Закрываем БД, чтобы получить ошибку драйвера
 	require.NoError(t, db.Close())
 
 	v, err := r.Get(ctx, "k")
@@ -181,7 +177,7 @@ func TestList_DBErrorWrapped(t *testing.T) {
 }
 
 func TestList_NullValueIsReturnedAsNil(t *testing.T) {
-	db := setupDBNullable(t) // таблица без NOT NULL
+	db := setupDBNullable(t)
 	r := NewSQLiteRepository(db)
 	ctx := context.Background()
 
@@ -190,7 +186,6 @@ func TestList_NullValueIsReturnedAsNil(t *testing.T) {
 
 	m, err := r.List(ctx)
 	require.NoError(t, err)
-	// ожидаем, что значение просто nil
 	v, ok := m["bad"]
 	require.True(t, ok)
 	require.Nil(t, v)

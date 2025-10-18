@@ -25,7 +25,6 @@ import (
 // func (n nopLogger) Error(context.Context, string, ...any) {}
 // func (n nopLogger) With(...any) logging.Logger            { return n }
 
-// Если у твоего интерфейса логгера есть WithContext(ctx), добавь:
 // func (n nopLogger) WithContext(context.Context) logging.Logger { return n }
 
 // ---- fakes ----
