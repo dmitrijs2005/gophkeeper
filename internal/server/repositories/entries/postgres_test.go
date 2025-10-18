@@ -186,7 +186,7 @@ func TestSelectUpdated_QueryError(t *testing.T) {
 	repo, mock, db := newRepoWithMock(t)
 	defer db.Close()
 
-	q := regexp.MustCompile(`SELECT id, overview, nonce_overview, details, nonce_details, deleted, version from entries\s+WHERE user_id=\$1 and version>\$2`)
+	q := regexp.MustCompile(`SELECT id, overview, nonce_overview, details, nonce_details, deleted, version from  entries\s+WHERE user_id=\$1 and version>\$2`)
 
 	mock.ExpectQuery(q.String()).
 		WithArgs("u1", int64(10)).

@@ -10,16 +10,18 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/dbx"
 )
 
+// SQLiteRepository implements Repository using a DBTX (either *sql.DB or *sql.Tx).
 type SQLiteRepository struct {
 	db dbx.DBTX
 }
 
+// NewSQLiteRepository returns a new SQLiteRepository bound to the given DBTX.
 func NewSQLiteRepository(db dbx.DBTX) *SQLiteRepository {
 	return &SQLiteRepository{db: db}
 }
 
+// CreateOrUpdate upserts an entry by id. On conflict, selected columns are updated.
 func (r *SQLiteRepository) CreateOrUpdate(ctx context.Context, e *models.Entry) error {
-
 	query := ` INSERT INTO entries (id, overview, nonce_overview, details, nonce_details, deleted)
 			values (?, ?, ?, ?, ?, ?)
 			ON CONFLICT(id) DO UPDATE SET overview = excluded.overview, 
@@ -28,103 +30,85 @@ func (r *SQLiteRepository) CreateOrUpdate(ctx context.Context, e *models.Entry) 
 				nonce_details = excluded.nonce_details,
 				deleted = excluded.deleted
 	`
-	_, err := r.db.ExecContext(ctx, query, e.Id, e.Overview,
-		e.NonceOverview, e.Details, e.NonceDetails, e.Deleted)
+	_, err := r.db.ExecContext(ctx, query,
+		e.Id, e.Overview, e.NonceOverview, e.Details, e.NonceDetails, e.Deleted)
 	if err != nil {
 		return fmt.Errorf("failed to upsert entry: %w", err)
 	}
-
 	return nil
 }
 
+// GetAll lists all non-deleted entries, returning only overview fields.
 func (r *SQLiteRepository) GetAll(ctx context.Context) ([]models.Entry, error) {
-
-	query := ` select id, overview, nonce_overview from entries where deleted=0`
+	query := `select id, overview, nonce_overview from entries where deleted=0`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select entries: %w", err)
 	}
+	defer rows.Close()
 
 	var result []models.Entry
-
-	defer rows.Close()
 	for rows.Next() {
-		var item = models.Entry{}
-		err := rows.Scan(&item.Id, &item.Overview, &item.NonceOverview)
-		if err != nil {
+		var item models.Entry
+		if err := rows.Scan(&item.Id, &item.Overview, &item.NonceOverview); err != nil {
 			return nil, err
 		}
 		result = append(result, item)
-
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
+// DeleteByID marks an entry as deleted (soft delete). It expects exactly one row to be affected.
 func (r *SQLiteRepository) DeleteByID(ctx context.Context, id string) error {
-
 	query := `update entries set deleted=1 where id=? and deleted=0`
-	result, err := r.db.ExecContext(ctx, query, id)
+	res, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete entry: %w", err)
 	}
-
-	rowsAffected, err := result.RowsAffected()
+	ra, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-
-	if rowsAffected != 1 {
-		return fmt.Errorf("wrong rows affected count: %w", err)
+	if ra != 1 {
+		return fmt.Errorf("wrong rows affected count: %d", ra)
 	}
-
 	return nil
 }
 
+// GetByID returns details for a single non-deleted entry.
 func (r *SQLiteRepository) GetByID(ctx context.Context, id string) (*models.Entry, error) {
-
 	query := `select details, nonce_details from entries where deleted=0 and id=?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	e := &models.Entry{}
-	err := row.Scan(&e.Details, &e.NonceDetails)
-
-	if err != nil {
-		return nil, fmt.Errorf("wrong rows affected count: %w", err)
+	if err := row.Scan(&e.Details, &e.NonceDetails); err != nil {
+		return nil, fmt.Errorf("query row scan failed: %w", err)
 	}
-
 	return e, nil
-
 }
 
+// GetAllPending returns entries flagged as pending=1 (awaiting sync).
 func (r *SQLiteRepository) GetAllPending(ctx context.Context) ([]*models.Entry, error) {
 	query := `select id, overview, nonce_overview, details, nonce_details from entries where pending=1`
 	rows, err := r.db.QueryContext(ctx, query)
-
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 	defer rows.Close()
 
-	pendingEntries := []*models.Entry{}
-
+	var pending []*models.Entry
 	for rows.Next() {
-		var entry = &models.Entry{}
-		err := rows.Scan(&entry.Id, &entry.Overview, &entry.NonceOverview, &entry.Details, &entry.NonceDetails)
-		if err != nil {
+		entry := &models.Entry{}
+		if err := rows.Scan(&entry.Id, &entry.Overview, &entry.NonceOverview, &entry.Details, &entry.NonceDetails); err != nil {
 			return nil, err
 		}
-		pendingEntries = append(pendingEntries, entry)
+		pending = append(pending, entry)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
-	return pendingEntries, nil
-
+	return pending, nil
 }

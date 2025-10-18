@@ -9,57 +9,49 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/timex"
 )
 
-// JsonConfig defines a configuration structure tailored for JSON unmarshalling.
-// It uses common.Duration for interval fields, which allows parsing both
-// string values such as "1s" and integer nanoseconds.
-//
-// This struct is an intermediate DTO (Data Transfer Object) used only for
-// reading JSON configuration files. After unmarshalling, its fields are
-// copied into the runtime Config struct which uses time.Duration.
+// JsonConfig is a DTO used exclusively for JSON unmarshalling.
+// It relies on timex.Duration so JSON can specify intervals either as
+// strings like "3s" or as integer nanoseconds. After parsing, values
+// are copied into the runtime Config (which uses time.Duration).
 type JsonConfig struct {
 	ServerEndpointAddr  string         `json:"server_endpoint_addr"`
 	OnlineCheckInterval timex.Duration `json:"online_check_interval"`
 }
 
-// parseJson loads configuration values from a JSON file into the provided
-// Config instance.
+// parseJson overlays Config with values loaded from a JSON file.
 //
-// The lookup order for the JSON file path is:
+// Lookup order for the JSON file path:
+//  1. Command-line flags (-c or -config) via flagx.JsonConfigFlags().
+//  2. If empty, no JSON is loaded and the function returns.
 //
-//	The -c or -config command-line flags.
-//	If it is not set, no JSON file is loaded.
+// Behavior:
+//   - Reads and unmarshals the JSON into JsonConfig.
+//   - Copies known fields into the provided Config.
+//   - Panics on read or unmarshal errors (caller should recover if desired).
 //
-// If the file path is found, parseJson attempts to read and unmarshal it
-// into a JsonConfig. The resulting values are copied into the target Config.
-// If the file cannot be read or contains invalid JSON, the function panics.
-//
-// Fields populated:
+// Populated fields:
 //   - ServerEndpointAddr
 //   - OnlineCheckInterval
 //
-// The caller is expected to merge these values with defaults and command-line flags as part of the full configuration process.
-func parseJson(config *Config) {
-
-	// try flags
+// Intended usage is: defaults -> parseJson -> parseFlags, where later stages
+// override earlier ones.
+func parseJson(cfg *Config) {
+	// Resolve file path from flags.
 	jsonConfigFile := flagx.JsonConfigFlags()
-
-	// nothing to load
 	if jsonConfigFile == "" {
 		return
 	}
 
-	c := &JsonConfig{}
+	var jc JsonConfig
 
-	file, err := os.ReadFile(jsonConfigFile)
+	data, err := os.ReadFile(jsonConfigFile)
 	if err != nil {
 		panic(err)
 	}
-
-	err = json.Unmarshal(file, c)
-	if err != nil {
+	if err := json.Unmarshal(data, &jc); err != nil {
 		panic(err)
 	}
 
-	config.ServerEndpointAddr = c.ServerEndpointAddr
-	config.OnlineCheckInterval = time.Duration(c.OnlineCheckInterval.Duration)
+	cfg.ServerEndpointAddr = jc.ServerEndpointAddr
+	cfg.OnlineCheckInterval = time.Duration(jc.OnlineCheckInterval.Duration)
 }

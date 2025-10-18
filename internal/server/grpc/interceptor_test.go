@@ -8,7 +8,6 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/common"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/auth"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/services"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -115,7 +114,7 @@ func TestInterceptor_Sync_ValidToken_SetsUserID(t *testing.T) {
 
 	var gotFromCtx any
 	h := func(ctx context.Context, req interface{}) (interface{}, error) {
-		gotFromCtx = ctx.Value(shared.UserIDKey)
+		gotFromCtx = ctx.Value(UserIDKey)
 		return "ok", nil
 	}
 

@@ -8,20 +8,28 @@ import (
 	"github.com/dmitrijs2005/gophkeeper/internal/flagx"
 )
 
-// c.EndpointAddrGRPC = ":50051"
-// c.DatabaseDSN = "postgres://postgres:postgres@postgres:5432/gophkeeper?sslmode=disable"
-// c.SecretKey = "secretKey"
-// c.AccessTokenValidityDuration = 1 * time.Minute
-// c.RefreshTokenValidityDuration = 3 * time.Minute
-// c.S3RootUser = "admin"
-// c.S3RootPassword = "secretpassword"
-// c.S3Bucket = "vault"
-// c.S3Region = "us-east-1"
-// c.S3BaseEndpoint = "http://127.0.0.1:9000/"
-
+// parseFlags populates selected server Config fields from command-line flags.
+//
+// Supported flags (short forms):
+//
+//	-a string   gRPC bind address (e.g., ":50051")
+//	-d string   PostgreSQL DSN
+//	-s string   JWT HMAC secret key
+//	-t int      access token validity, minutes
+//	-r int      refresh token validity, minutes
+//	-u string   S3 root user
+//	-p string   S3 root password
+//	-b string   S3 bucket name
+//	-g string   S3 region
+//	-e string   S3 base endpoint (e.g., "http://127.0.0.1:9000/")
+//
+// Notes:
+//   - The function first filters os.Args to only the flags it recognizes using
+//     flagx.FilterArgs, avoiding collisions with other components.
+//   - Duration flags are accepted as integers in minutes and then converted
+//     to time.Duration values.
 func parseFlags(config *Config) {
-
-	// filtering args to leave just values processed by parseFlags
+	// Filter args to include only the flags handled here.
 	args := flagx.FilterArgs(os.Args[1:], []string{"-a", "-d", "-s", "-t", "-r", "-u", "-p", "-b", "-g", "-e"})
 
 	fs := flag.NewFlagSet("main", flag.ContinueOnError)
@@ -39,12 +47,10 @@ func parseFlags(config *Config) {
 	fs.StringVar(&config.S3Region, "g", config.S3Region, "S3 root region")
 	fs.StringVar(&config.S3BaseEndpoint, "e", config.S3BaseEndpoint, "S3 base endpoint")
 
-	err := fs.Parse(args)
-	if err != nil {
+	if err := fs.Parse(args); err != nil {
 		panic(err)
 	}
 
 	config.AccessTokenValidityDuration = time.Duration(*accessTokenValidityDuration) * time.Minute
 	config.RefreshTokenValidityDuration = time.Duration(*refreshTokenValidityDuration) * time.Minute
-
 }

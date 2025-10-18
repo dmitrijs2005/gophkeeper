@@ -249,7 +249,7 @@ func TestMarkUploaded_DBErr(t *testing.T) {
 		WillReturnError(errors.New("db err"))
 
 	err := repo.MarkUploaded(context.Background(), "e1")
-	if err == nil || !regexp.MustCompile(`failed to delete entry: .*db err`).MatchString(err.Error()) {
+	if err == nil || !regexp.MustCompile(`failed to mark uploaded: .*db err`).MatchString(err.Error()) {
 		t.Fatalf("expected wrapped db error, got %v", err)
 	}
 }

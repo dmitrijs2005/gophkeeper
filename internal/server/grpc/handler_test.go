@@ -11,7 +11,6 @@ import (
 	pb "github.com/dmitrijs2005/gophkeeper/internal/proto"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/models"
 	"github.com/dmitrijs2005/gophkeeper/internal/server/services"
-	"github.com/dmitrijs2005/gophkeeper/internal/server/shared"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -219,7 +218,7 @@ func TestSync_OK(t *testing.T) {
 
 	s := newServer(&fakeUser{}, e)
 
-	ctx := context.WithValue(context.Background(), shared.UserIDKey, "user-1")
+	ctx := context.WithValue(context.Background(), UserIDKey, "user-1")
 	req := &pb.SyncRequest{
 		MaxVersion: 1,
 		Entries: []*pb.Entry{
@@ -264,7 +263,7 @@ func TestSync_PropagatesErrors(t *testing.T) {
 	e.syncOut.err = common.ErrorUnauthorized
 	s := newServer(&fakeUser{}, e)
 
-	ctx := context.WithValue(context.Background(), shared.UserIDKey, "u")
+	ctx := context.WithValue(context.Background(), UserIDKey, "u")
 	_, err := s.Sync(ctx, &pb.SyncRequest{})
 	if status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("want Unauthenticated, got %v", status.Code(err))
