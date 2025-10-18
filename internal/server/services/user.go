@@ -55,7 +55,7 @@ func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*T
 
 	token, err := repo.Find(ctx, refreshToken)
 	if err != nil {
-		return nil, fmt.Errorf("error searching refresh token: %v", err)
+		return nil, fmt.Errorf("error searching refresh token: %w", err)
 	}
 	if token.Expires.Before(time.Now()) {
 		return nil, common.ErrRefreshTokenExpired
@@ -65,7 +65,7 @@ func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*T
 	if err := dbx.WithTx(ctx, s.db, nil, func(ctx context.Context, tx dbx.DBTX) error {
 		repoTx := s.repomanager.RefreshTokens(tx)
 		if err := repoTx.Delete(ctx, refreshToken); err != nil {
-			return fmt.Errorf("error deleting refresh token: %v", err)
+			return fmt.Errorf("error deleting refresh token: %w", err)
 		}
 		var genErr error
 		pair, genErr = s.generateTokenPair(ctx, token.UserID, tx)
@@ -82,7 +82,7 @@ func (s *UserService) Register(ctx context.Context, username string, salt, verif
 	repo := s.repomanager.Users(s.db)
 	u, err := repo.Create(ctx, user)
 	if err != nil {
-		return nil, fmt.Errorf("error creating user: %v", err)
+		return nil, fmt.Errorf("error creating user: %w", err)
 	}
 	return u, nil
 }
